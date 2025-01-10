@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket</title>
+    <script>
+      window.onload = () => {
+        const lastAddress = localStorage.getItem("last-ip-address");
+        const address = window.prompt("IP address to connect to:",
+          (lastAddress == null || lastAddress.length === 0) ? "" : lastAddress);
+        if (address != null && address.length > 0) {
+          localStorage.setItem("last-ip-address", address);
+
+          const socket = new WebSocket(`ws://${address}/`);
+          socket.binaryType = "arraybuffer";
+
+          const infoBox = document.getElementById("info-box");
+          const sendBox = document.getElementById("send-box");
+
+          sendBox.onkeydown = (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (socket.readyState === socket.OPEN) {
+                socket.send(sendBox.value);
+                sendBox.value = "";
+              }
+            }
+          };
+
+          socket.onopen = () => {
+            sendBox.disabled = false;
+            infoBox.value += "-- Connected to the server!\n";
+          };
+          socket.onerror = () => {
+            sendBox.disabled = true;
+            infoBox.value += "-- Error!\n";
+          };
+          socket.onclose = () => {
+            sendBox.disabled = true;
+            infoBox.value += "-- Disconnected!\n";
+          };
+          socket.onmessage = (message) => {
+            if (typeof message.data == "string") {
+              infoBox.value += message.data + '\n';
+            } else {
+              const decoder = new TextDecoder("utf-8", {fatal: true,});
+              try {
+                const decoded = decoder.decode(message.data)
+                infoBox.value += decoded + '\n';
+              } catch (error) {
+                infoBox.value += "binary\n";
+              }
+            }
+          };
+        }
+      };
+    </script>
+</head>
+
+<body>
+<textarea id="info-box" readonly rows="50" cols="60"></textarea>
+<br>
+<input style="width: 50em;" type="text" id="send-box" disabled>
+</body>
+
+</html>
