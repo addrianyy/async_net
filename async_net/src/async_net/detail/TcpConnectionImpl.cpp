@@ -5,6 +5,7 @@
 #include <async_net/IpResolver.hpp>
 
 #include <base/Log.hpp>
+#include <base/Panic.hpp>
 
 namespace async_net::detail {
 
@@ -41,7 +42,7 @@ void TcpConnectionImpl::cleanup() {
 
 void TcpConnectionImpl::cleanup_before_register() {
   socket = {};
-  connecting_socket = {};
+  connecting_state = {};
   cleanup();
 }
 
@@ -54,7 +55,7 @@ bool TcpConnectionImpl::prepare_unregister() {
   unregister_pending = true;
 
   socket = {};
-  connecting_socket = {};
+  connecting_state = {};
   can_send_packets = false;
 
   if (state != TcpConnection::State::Disconnected && state != TcpConnection::State::Error) {
@@ -77,38 +78,125 @@ void TcpConnectionImpl::enter_connected_state(bool invoke_callbacks) {
   }
 }
 
+void TcpConnectionImpl::setup_connecting_timeout(const std::shared_ptr<TcpConnectionImpl>& self) {
+  auto selfW = std::weak_ptr(self);
+  connecting_state->timeout = Timer::invoke_after(
+    context, base::PreciseTime::from_milliseconds(300), [selfW = std::move(selfW)] {
+      if (auto selfS = selfW.lock()) {
+        if (selfS->state == TcpConnection::State::Connecting) {
+          // Don't use TimedOut here to make the result consistent between OSes.
+          const auto succeeded = selfS->attempt_next_address(
+            selfS, {
+                     .error = sock::Error::ConnectFailed,
+                     .system_error = sock::SystemError::ConnectionRefused,
+                   });
+          if (!succeeded) {
+            selfS->unregister_during_runloop(selfS);
+          }
+        }
+      }
+    });
+}
+
+bool TcpConnectionImpl::attempt_next_address(const std::shared_ptr<TcpConnectionImpl>& self,
+                                             Status previous_connection_status) {
+  if (connecting_state->error_status) {
+    connecting_state->error_status = previous_connection_status;
+  }
+
+  for (size_t i = connecting_state->next_address_index; i < connecting_state->addresses.size();
+       ++i) {
+    const auto address = connecting_state->addresses[i];
+
+    auto [initiate_status, connection] = sock::ConnectingStreamSocket::initiate_connection(address);
+    if (!initiate_status) {
+      if (connecting_state->error_status) {
+        connecting_state->error_status = initiate_status;
+      }
+      continue;
+    }
+
+    if (connection.connected) {
+      connecting_state = {};
+      socket = std::move(connection.connected);
+      enter_connected_state(true);
+    } else {
+      connecting_state->socket = std::move(connection.connecting);
+      connecting_state->next_address_index = i + 1;
+
+      setup_connecting_timeout(self);
+    }
+
+    return true;
+  }
+
+  const auto status = connecting_state->error_status;
+
+  verify(!status, "expected error status");
+
+  state = TcpConnection::State::Error;
+  connecting_state = {};
+
+  if (on_connection_failed) {
+    on_connection_failed(status);
+  } else {
+    log_error("failed to connect to the TCP socket: {}", status.stringify());
+  }
+
+  return false;
+}
+
 void TcpConnectionImpl::connect_immediate(std::shared_ptr<TcpConnectionImpl> self,
-                                          SocketAddress address) {
+                                          std::vector<SocketAddress> addresses) {
+  verify(!addresses.empty(), "address list is empty");
+
   if (state == TcpConnection::State::Shutdown) {
     return cleanup_before_register();
   }
 
-  auto [initiate_status, connection] = sock::ConnectingSocket::initiate_connection(address);
-  if (!initiate_status) {
-    state = TcpConnection::State::Error;
+  Status error_status{};
 
-    if (on_error) {
-      on_connection_failed(initiate_status);
-    } else {
-      log_error("failed to connect to the TCP socket: {}", initiate_status.stringify());
+  for (size_t i = 0; i < addresses.size(); ++i) {
+    const auto address = addresses[i];
+
+    auto [initiate_status, connection] = sock::ConnectingStreamSocket::initiate_connection(address);
+    if (!initiate_status) {
+      if (error_status) {
+        error_status = initiate_status;
+      }
+      continue;
     }
 
-    return cleanup_before_register();
+    if (connection.connected) {
+      socket = std::move(connection.connected);
+      enter_connected_state(true);
+    } else {
+      state = TcpConnection::State::Connecting;
+      connecting_state = std::make_unique<ConnectingState>(
+        std::move(connection.connecting), std::move(addresses), i + 1, error_status);
+    }
+
+    if (state != TcpConnection::State::Shutdown) {
+      setup_connecting_timeout(self);
+      context.impl_->register_tcp_connection(std::move(self));
+    } else {
+      cleanup_before_register();
+    }
+
+    return;
   }
 
-  if (connection.connected) {
-    socket = std::move(connection.connected);
-    enter_connected_state(true);
+  verify(!error_status, "expected error status");
+
+  state = TcpConnection::State::Error;
+
+  if (on_connection_failed) {
+    on_connection_failed(error_status);
   } else {
-    state = TcpConnection::State::Connecting;
-    connecting_socket = std::make_unique<sock::ConnectingSocket>(std::move(connection.connecting));
+    log_error("failed to connect to the TCP socket: {}", error_status.stringify());
   }
 
-  if (state != TcpConnection::State::Shutdown) {
-    context.impl_->register_tcp_connection(std::move(self));
-  } else {
-    cleanup_before_register();
-  }
+  cleanup_before_register();
 }
 
 TcpConnectionImpl::TcpConnectionImpl(IoContext& context) : context(context) {}
@@ -130,31 +218,42 @@ void TcpConnectionImpl::startup(std::shared_ptr<TcpConnectionImpl> self,
 void TcpConnectionImpl::startup(std::shared_ptr<TcpConnectionImpl> self,
                                 std::string hostname,
                                 uint16_t port) {
-  IpResolver::resolve(context, std::move(hostname),
-                      [self = std::move(self), port](sock::Status status, IpAddress resolved_ip) {
-                        if (self->state == TcpConnection::State::Shutdown) {
-                          return self->cleanup_before_register();
-                        }
+  IpResolver::resolve(
+    context, std::move(hostname),
+    [self = std::move(self), port](sock::Status status, std::vector<IpAddress> resolved_ips) {
+      if (self->state == TcpConnection::State::Shutdown) {
+        return self->cleanup_before_register();
+      }
 
-                        if (status) {
-                          self->connect_immediate(self, SocketAddress{resolved_ip, port});
-                        } else {
-                          self->state = TcpConnection::State::Error;
+      if (status) {
+        std::vector<SocketAddress> socket_addresses;
+        socket_addresses.reserve(resolved_ips.size());
 
-                          if (self->on_error) {
-                            self->on_error(status);
-                          } else {
-                            log_error("failed to connect to the TCP socket: {}",
-                                      status.stringify());
-                          }
+        for (const auto ip : resolved_ips) {
+          socket_addresses.emplace_back(ip, port);
+        }
 
-                          self->cleanup_before_register();
-                        }
-                      });
+        self->connect_immediate(self, std::move(socket_addresses));
+      } else {
+        self->state = TcpConnection::State::Error;
+
+        if (self->on_error) {
+          self->on_error(status);
+        } else {
+          log_error("failed to connect to the TCP socket: {}", status.stringify());
+        }
+
+        self->cleanup_before_register();
+      }
+    });
 }
 
 void TcpConnectionImpl::startup(std::shared_ptr<TcpConnectionImpl> self, SocketAddress address) {
-  context.post([self = std::move(self), address] { self->connect_immediate(self, address); });
+  context.post([self = std::move(self), address] {
+    std::vector<SocketAddress> socket_addresses;
+    socket_addresses.emplace_back(address);
+    self->connect_immediate(self, std::move(socket_addresses));
+  });
 }
 
 void TcpConnectionImpl::shutdown(std::shared_ptr<TcpConnectionImpl> self) {

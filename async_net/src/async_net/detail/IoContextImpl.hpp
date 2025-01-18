@@ -78,7 +78,8 @@ class IoContextImpl {
   void queue_deferred_work(std::function<void()> callback);
   void queue_deferred_work_atomic(std::function<void()> callback);
 
-  void queue_ip_resolve(std::string hostname, std::function<void(Status, IpAddress)> callback);
+  void queue_ip_resolve(std::string hostname,
+                        std::function<void(Status, std::vector<IpAddress>)> callback);
 
   TimerManagerImpl::TimerKey register_timer(base::PreciseTime deadline,
                                             std::function<void()> callback);

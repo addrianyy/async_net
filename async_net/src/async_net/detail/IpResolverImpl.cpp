@@ -13,10 +13,10 @@ void IpResolverImpl::worker_run() {
     }
 
     for (auto& request : requests) {
-      const auto [status, ip] = sock::IpResolver::ForIp<IpAddress>::resolve(request.hostname);
+      auto [status, ips] = sock::IpResolver::ForIp<IpAddress>::resolve(request.hostname);
       worker_response_queue.push_back_one({
         .status = status,
-        .resolved_ip = ip,
+        .resolved_ips = std::move(ips),
         .callback = std::move(request.callback),
       });
       io_context.notify();
@@ -42,7 +42,7 @@ void IpResolverImpl::exit() {
 }
 
 void IpResolverImpl::resolve(std::string hostname,
-                             std::function<void(Status, IpAddress)> callback) {
+                             std::function<void(Status, std::vector<IpAddress>)> callback) {
   worker_request_queue.push_back_one({
     .hostname = std::move(hostname),
     .callback = std::move(callback),
@@ -56,7 +56,7 @@ void IpResolverImpl::poll() {
   pending_requests -= response_buffer.size();
 
   for (auto& response : response_buffer) {
-    response.callback(response.status, response.resolved_ip);
+    response.callback(response.status, std::move(response.resolved_ips));
   }
   response_buffer.clear();
 }

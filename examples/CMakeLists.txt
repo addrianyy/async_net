@@ -1,3 +1,4 @@
 add_subdirectory(chat)
 add_subdirectory(echo)
 add_subdirectory(proxy)
+add_subdirectory(connector)

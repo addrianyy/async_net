@@ -53,9 +53,9 @@ void IoContextImpl::register_poll_entries() {
     auto query_events = sock::Poller::QueryEvents::None;
     sock::Socket* socket = nullptr;
 
-    if (connection->connecting_socket) {
+    if (connection->connecting_state) {
       if (connection->state == TcpConnection::State::Connecting) {
-        socket = &*connection->connecting_socket;
+        socket = &connection->connecting_state->socket;
 
         query_events = query_events | sock::Poller::QueryEvents::CanReceiveFrom |
                        sock::Poller::QueryEvents::CanSendTo;
@@ -88,18 +88,15 @@ void IoContextImpl::handle_listener_events(const sock::Poller::PollEntry& entry,
     if (listener->state == TcpListener::State::Listening) {
       listener->state = TcpListener::State::Error;
 
-      Status status{
-        .error = sock::Error::ListenFailed,
-        .sub_error = sock::Error::PollFailed,
-        .system_error = sock::SystemError::Unknown,
-      };
-
-      {
-        const auto [accept_status, _] = listener->socket.accept();
-        if (!accept_status && !accept_status.would_block()) {
-          status = accept_status;
-        }
+      auto error = listener->socket.last_error();
+      if (error == SystemError::None) {
+        error = SystemError::Unknown;
       }
+
+      const Status status{
+        .error = sock::Error::ListenFailed,
+        .system_error = error,
+      };
 
       if (listener->on_error) {
         listener->on_error(status);
@@ -135,30 +132,31 @@ void IoContextImpl::handle_listener_events(const sock::Poller::PollEntry& entry,
 IoContextImpl::PendingConnectionStatus IoContextImpl::handle_pending_connection_events(
   const sock::Poller::PollEntry& entry,
   std::shared_ptr<TcpConnectionImpl>& connection) {
+  const auto next_connection = [&](Status status) {
+    if (!connection->attempt_next_address(connection, status)) {
+      return PendingConnectionStatus::Failed;
+    } else {
+      return connection->state == TcpConnection::State::Connected
+               ? PendingConnectionStatus::Connected
+               : PendingConnectionStatus::StillWaiting;
+    }
+  };
+
   if (entry.has_any_event(sock::Poller::StatusEvents::Disconnected |
                           sock::Poller::StatusEvents::InvalidSocket |
                           sock::Poller::StatusEvents::Error)) {
     if (connection->state == TcpConnection::State::Connecting) {
-      connection->state = TcpConnection::State::Error;
+      auto error = connection->connecting_state->socket.last_error();
+      if (error == SystemError::None) {
+        error = SystemError::Unknown;
+      }
 
-      Status status{
+      const Status status{
         .error = sock::Error::ConnectFailed,
-        .sub_error = sock::Error::PollFailed,
-        .system_error = sock::SystemError::Unknown,
+        .system_error = error,
       };
 
-      {
-        const auto [connect_status, _] = connection->connecting_socket->connect();
-        if (!connect_status && !connect_status.would_block()) {
-          status = connect_status;
-        }
-      }
-
-      if (connection->on_connection_failed) {
-        connection->on_connection_failed(status);
-      } else {
-        log_error("failed to connect to the TCP socket: {}", status.stringify());
-      }
+      return next_connection(status);
     }
 
     return PendingConnectionStatus::Failed;
@@ -167,11 +165,10 @@ IoContextImpl::PendingConnectionStatus IoContextImpl::handle_pending_connection_
   if (entry.has_any_event(sock::Poller::StatusEvents::CanSendTo |
                           sock::Poller::StatusEvents::CanReceiveFrom)) {
     if (connection->state == TcpConnection::State::Connecting) {
-      auto [connect_status, socket] = connection->connecting_socket->connect();
-
-      connection->connecting_socket = nullptr;
+      auto [connect_status, socket] = connection->connecting_state->socket.connect();
 
       if (connect_status) {
+        connection->connecting_state = {};
         connection->socket = std::move(socket);
         connection->enter_connected_state(true);
 
@@ -179,15 +176,7 @@ IoContextImpl::PendingConnectionStatus IoContextImpl::handle_pending_connection_
                  ? PendingConnectionStatus::Connected
                  : PendingConnectionStatus::Failed;
       } else {
-        connection->state = TcpConnection::State::Error;
-
-        if (connection->on_connection_failed) {
-          connection->on_connection_failed(connect_status);
-        } else {
-          log_error("failed to connect to the TCP socket: {}", connect_status.stringify());
-        }
-
-        return PendingConnectionStatus::Failed;
+        return next_connection(connect_status);
       }
     } else {
       return PendingConnectionStatus::Failed;
@@ -203,7 +192,7 @@ void IoContextImpl::handle_connection_events(const sock::Poller::PollEntry& entr
   constexpr static size_t max_receive_fragment_size = 16 * 1024 * 1024;
   constexpr static size_t max_send_fragment_size = 32 * 1024 * 1024;
 
-  if (connection->connecting_socket) {
+  if (connection->connecting_state) {
     const auto status = handle_pending_connection_events(entry, connection);
     if (status == PendingConnectionStatus::Failed) {
       connection->unregister_during_runloop(connection);
@@ -288,12 +277,18 @@ void IoContextImpl::handle_connection_events(const sock::Poller::PollEntry& entr
                           sock::Poller::StatusEvents::Error |
                           sock::Poller::StatusEvents::Disconnected)) {
     if (connection->state == TcpConnection::State::Connected) {
-      const auto error =
-        sock::Status{.error = sock::Error::PollFailed,
-                     .system_error = entry.has_events(sock::Poller::StatusEvents::Disconnected)
-                                       ? sock::SystemError::Disconnected
-                                       : sock::SystemError::Unknown};
-      on_socket_error(error);
+      auto error = connection->connecting_state->socket.last_error();
+      if (error == SystemError::None) {
+        error = SystemError::Unknown;
+      }
+      if (entry.has_events(sock::Poller::StatusEvents::Disconnected)) {
+        error = sock::SystemError::Disconnected;
+      }
+
+      on_socket_error(sock::Status{
+        .error = sock::Error::PollFailed,
+        .system_error = error,
+      });
     } else {
       connection->unregister_during_runloop(connection);
     }
@@ -426,9 +421,9 @@ bool IoContextImpl::has_any_non_atomic_work() const {
 }
 
 IoContextImpl::IoContextImpl() : ip_resolver(*this) {
-  verify(sock::initialize(), "failed to initialize socket library");
-
-  poller = sock::Poller::create();
+  poller = sock::Poller::create({
+    .enable_cancellation = true,
+  });
   verify(poller, "failed to create socket poller");
 }
 
@@ -461,7 +456,7 @@ void IoContextImpl::queue_deferred_work_atomic(std::function<void()> callback) {
 }
 
 void IoContextImpl::queue_ip_resolve(std::string hostname,
-                                     std::function<void(Status, IpAddress)> callback) {
+                                     std::function<void(Status, std::vector<IpAddress>)> callback) {
   ip_resolver.resolve(std::move(hostname), std::move(callback));
 }
 

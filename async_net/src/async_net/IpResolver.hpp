@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace async_net {
 
@@ -13,7 +14,7 @@ class IpResolver {
  public:
   static void resolve(IoContext& context,
                       std::string hostname,
-                      std::function<void(sock::Status, IpAddress)> callback);
+                      std::function<void(sock::Status, std::vector<IpAddress>)> callback);
 };
 
 }  // namespace async_net

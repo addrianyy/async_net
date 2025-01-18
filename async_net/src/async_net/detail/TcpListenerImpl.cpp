@@ -5,6 +5,7 @@
 #include <async_net/IpResolver.hpp>
 
 #include <base/Log.hpp>
+#include <base/Panic.hpp>
 
 namespace async_net::detail {
 
@@ -37,40 +38,54 @@ bool TcpListenerImpl::prepare_unregister() {
 }
 
 void TcpListenerImpl::listen_immediate(std::shared_ptr<TcpListenerImpl> self,
-                                       SocketAddress address) {
+                                       std::span<const SocketAddress> addresses) {
+  verify(!addresses.empty(), "address list is empty");
+
   if (state == TcpListener::State::Shutdown) {
     return cleanup_before_register();
   }
 
-  auto [status, listener] = sock::Listener::bind(address, {
-                                                            .non_blocking = true,
-                                                            .reuse_address = true,
-                                                          });
+  Status error_status{};
 
-  if (status) {
-    state = TcpListener::State::Listening;
-    socket = std::move(listener);
+  for (const auto& address : addresses) {
+    auto [status, listener] = sock::Listener::bind(address, {
+                                                              .non_blocking = true,
+                                                              .reuse_address = true,
+                                                            });
 
-    if (on_listening) {
-      on_listening();
-    }
+    if (status) {
+      state = TcpListener::State::Listening;
+      socket = std::move(listener);
 
-    if (state != TcpListener::State::Shutdown) {
-      self->context.impl_->register_tcp_listener(std::move(self));
+      if (on_listening) {
+        on_listening();
+      }
+
+      if (state != TcpListener::State::Shutdown) {
+        self->context.impl_->register_tcp_listener(std::move(self));
+      } else {
+        cleanup_before_register();
+      }
+
+      return;
     } else {
-      cleanup_before_register();
+      if (error_status) {
+        error_status = status;
+      }
     }
-  } else {
-    state = TcpListener::State::Error;
-
-    if (on_error) {
-      on_error(status);
-    } else {
-      log_error("failed to listen on the TCP socket: {}", status.stringify());
-    }
-
-    cleanup_before_register();
   }
+
+  verify(!error_status, "expected error status");
+
+  state = TcpListener::State::Error;
+
+  if (on_error) {
+    on_error(error_status);
+  } else {
+    log_error("failed to listen on the TCP socket: {}", error_status.stringify());
+  }
+
+  cleanup_before_register();
 }
 
 TcpListenerImpl::TcpListenerImpl(IoContext& context) : context(context) {}
@@ -78,30 +93,41 @@ TcpListenerImpl::TcpListenerImpl(IoContext& context) : context(context) {}
 void TcpListenerImpl::startup(std::shared_ptr<TcpListenerImpl> self,
                               std::string hostname,
                               uint16_t port) {
-  IpResolver::resolve(context, std::move(hostname),
-                      [self = std::move(self), port](sock::Status status, IpAddress resolved_ip) {
-                        if (self->state == TcpListener::State::Shutdown) {
-                          return self->cleanup_before_register();
-                        }
+  IpResolver::resolve(
+    context, std::move(hostname),
+    [self = std::move(self), port](sock::Status status, std::vector<IpAddress> resolved_ips) {
+      if (self->state == TcpListener::State::Shutdown) {
+        return self->cleanup_before_register();
+      }
 
-                        if (status) {
-                          self->listen_immediate(self, SocketAddress{resolved_ip, port});
-                        } else {
-                          self->state = TcpListener::State::Error;
+      if (status) {
+        std::vector<SocketAddress> socket_addresses;
+        socket_addresses.reserve(resolved_ips.size());
 
-                          if (self->on_error) {
-                            self->on_error(status);
-                          } else {
-                            log_error("failed to listen on the TCP socket: {}", status.stringify());
-                          }
+        for (const auto ip : resolved_ips) {
+          socket_addresses.emplace_back(ip, port);
+        }
 
-                          self->cleanup_before_register();
-                        }
-                      });
+        self->listen_immediate(self, socket_addresses);
+      } else {
+        self->state = TcpListener::State::Error;
+
+        if (self->on_error) {
+          self->on_error(status);
+        } else {
+          log_error("failed to listen on the TCP socket: {}", status.stringify());
+        }
+
+        self->cleanup_before_register();
+      }
+    });
 }
 
 void TcpListenerImpl::startup(std::shared_ptr<TcpListenerImpl> self, SocketAddress address) {
-  context.post([self = std::move(self), address] { self->listen_immediate(self, address); });
+  context.post([self = std::move(self), address] {
+    const SocketAddress socket_addresses[]{address};
+    self->listen_immediate(self, socket_addresses);
+  });
 }
 
 void TcpListenerImpl::shutdown(std::shared_ptr<TcpListenerImpl> self) {

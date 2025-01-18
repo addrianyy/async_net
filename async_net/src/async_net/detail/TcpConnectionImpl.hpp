@@ -4,6 +4,7 @@
 #include <async_net/IpAddress.hpp>
 #include <async_net/Status.hpp>
 #include <async_net/TcpConnection.hpp>
+#include <async_net/Timer.hpp>
 
 #include <socklib/Socket.hpp>
 
@@ -27,6 +28,23 @@ class TcpConnectionImpl {
   friend IoContextImpl;
   friend ContextEntryRegistration;
 
+  struct ConnectingState {
+    sock::ConnectingStreamSocket socket;
+    std::vector<SocketAddress> addresses;
+    size_t next_address_index{};
+    Status error_status{};
+    async_net::Timer timeout;
+
+    ConnectingState(sock::ConnectingStreamSocket socket,
+                    std::vector<SocketAddress> addresses,
+                    size_t next_address_index,
+                    Status error_status)
+        : socket(std::move(socket)),
+          addresses(std::move(addresses)),
+          next_address_index(next_address_index),
+          error_status(error_status) {}
+  };
+
   IoContext& context;
   size_t context_index{invalid_context_index};
 
@@ -35,7 +53,7 @@ class TcpConnectionImpl {
   bool can_send_packets{};
 
   sock::StreamSocket socket;
-  std::unique_ptr<sock::ConnectingSocket> connecting_socket;
+  std::unique_ptr<ConnectingState> connecting_state;
 
   base::BinaryBuffer receive_buffer;
   base::BinaryBuffer send_buffer;
@@ -64,7 +82,11 @@ class TcpConnectionImpl {
 
   void enter_connected_state(bool invoke_callbacks);
 
-  void connect_immediate(std::shared_ptr<TcpConnectionImpl> self, SocketAddress address);
+  void setup_connecting_timeout(const std::shared_ptr<TcpConnectionImpl>& self);
+  bool attempt_next_address(const std::shared_ptr<TcpConnectionImpl>& self,
+                            Status previous_connection_status);
+  void connect_immediate(std::shared_ptr<TcpConnectionImpl> self,
+                         std::vector<SocketAddress> addresses);
 
  public:
   explicit TcpConnectionImpl(IoContext& context);

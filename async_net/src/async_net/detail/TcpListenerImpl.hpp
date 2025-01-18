@@ -43,7 +43,8 @@ class TcpListenerImpl {
   void cleanup_before_register();
   bool prepare_unregister();
 
-  void listen_immediate(std::shared_ptr<TcpListenerImpl> self, SocketAddress address);
+  void listen_immediate(std::shared_ptr<TcpListenerImpl> self,
+                        std::span<const SocketAddress> addresses);
 
  public:
   explicit TcpListenerImpl(IoContext& context);
