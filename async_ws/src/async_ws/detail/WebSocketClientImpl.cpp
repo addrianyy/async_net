@@ -1,6 +1,6 @@
 #include "WebSocketClientImpl.hpp"
 #include "ConnectionTimeout.hpp"
-#include "SetCallback.hpp"
+#include "UpdateCallback.hpp"
 #include "WebSocketConnectorImpl.hpp"
 #include "WebSocketServerImpl.hpp"
 
@@ -548,6 +548,14 @@ void WebSocketClientImpl::set_block_on_send_buffer_full(bool block) {
   connection.set_block_on_send_buffer_full(block);
 }
 
+bool WebSocketClientImpl::receive_packets() const {
+  return connection.receive_packets();
+}
+
+void WebSocketClientImpl::set_receive_packets(bool receive) const {
+  connection.set_receive_packets(receive);
+}
+
 bool WebSocketClientImpl::can_send_message(size_t size) const {
   if (state_ != WebSocketClient::State::Connected) {
     return false;
@@ -646,47 +654,32 @@ void WebSocketClientImpl::shutdown(std::shared_ptr<WebSocketClientImpl> self) {
   }
 }
 
-void WebSocketClientImpl::set_on_connection_succeeded(
-  const std::shared_ptr<WebSocketClientImpl>& self,
-  std::function<void()> callback,
-  bool instant) {
-  SET_CALLBACK_SAFE(on_connection_succeeded);
+void WebSocketClientImpl::set_on_connection_succeeded(std::function<void()> callback) {
+  detail::update_callback(context, on_connection_succeeded, std::move(callback));
 }
-void WebSocketClientImpl::set_on_connection_failed(const std::shared_ptr<WebSocketClientImpl>& self,
-                                                   std::function<void(Status)> callback,
-                                                   bool instant) {
-  SET_CALLBACK_SAFE(on_connection_failed);
+void WebSocketClientImpl::set_on_connection_failed(std::function<void(Status)> callback) {
+  detail::update_callback(context, on_connection_failed, std::move(callback));
 }
 
-void WebSocketClientImpl::set_on_disconnected(const std::shared_ptr<WebSocketClientImpl>& self,
-                                              std::function<void()> callback,
-                                              bool instant) {
-  SET_CALLBACK_SAFE(on_disconnected);
+void WebSocketClientImpl::set_on_disconnected(std::function<void()> callback) {
+  detail::update_callback(context, on_disconnected, std::move(callback));
 }
-void WebSocketClientImpl::set_on_error(const std::shared_ptr<WebSocketClientImpl>& self,
-                                       std::function<void(Status)> callback,
-                                       bool instant) {
-  SET_CALLBACK_SAFE(on_error);
+void WebSocketClientImpl::set_on_error(std::function<void(Status)> callback) {
+  detail::update_callback(context, on_error, std::move(callback));
 }
 
 void WebSocketClientImpl::set_on_text_message_received(
-  const std::shared_ptr<WebSocketClientImpl>& self,
-  std::function<void(std::string_view)> callback,
-  bool instant) {
-  SET_CALLBACK_SAFE(on_text_message_received);
+  std::function<void(std::string_view)> callback) {
+  detail::update_callback(context, on_text_message_received, std::move(callback));
 }
 void WebSocketClientImpl::set_on_binary_message_received(
-  const std::shared_ptr<WebSocketClientImpl>& self,
-  std::function<void(std::span<const uint8_t>)> callback,
-  bool instant) {
-  SET_CALLBACK_SAFE(on_binary_message_received);
+  std::function<void(std::span<const uint8_t>)> callback) {
+  detail::update_callback(context, on_binary_message_received, std::move(callback));
 }
 
-void WebSocketClientImpl::set_on_data_sent(const std::shared_ptr<WebSocketClientImpl>& self,
-                                           std::function<void()> callback,
-                                           bool instant) {
+void WebSocketClientImpl::set_on_data_sent(std::function<void()> callback) {
   const auto is_callback_present = callback != nullptr;
-  SET_CALLBACK_SAFE(on_data_sent);
+  detail::update_callback(context, on_data_sent, std::move(callback));
   if (is_callback_present) {
     request_tcp_data_sent_callback();
   }

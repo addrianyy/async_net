@@ -13,6 +13,6 @@ target_sources(async_ws PUBLIC
     CustomMaskingOverride.hpp
     ConnectionTimeout.cpp
     ConnectionTimeout.hpp
-    SetCallback.hpp
-    SetCallback.cpp
+    UpdateCallback.cpp
+    UpdateCallback.hpp
 )

@@ -63,7 +63,8 @@ void IoContextImpl::register_poll_entries() {
     } else {
       socket = &connection->socket;
 
-      if (connection->state == TcpConnection::State::Connected && connection->on_data_received &&
+      if (connection->state == TcpConnection::State::Connected && connection->receive_packets &&
+          connection->on_data_received &&
           (!connection->block_on_send_buffer_full ||
            connection->send_buffer_size() < connection->send_buffer_max_size)) {
         query_events = query_events | sock::Poller::QueryEvents::CanReceiveFrom;
@@ -81,7 +82,7 @@ void IoContextImpl::register_poll_entries() {
 }
 
 void IoContextImpl::handle_listener_events(const sock::Poller::PollEntry& entry,
-                                           std::shared_ptr<TcpListenerImpl>& listener) {
+                                           const std::shared_ptr<TcpListenerImpl>& listener) {
   if (entry.has_any_event(sock::Poller::StatusEvents::Disconnected |
                           sock::Poller::StatusEvents::InvalidSocket |
                           sock::Poller::StatusEvents::Error)) {
@@ -131,7 +132,7 @@ void IoContextImpl::handle_listener_events(const sock::Poller::PollEntry& entry,
 
 IoContextImpl::PendingConnectionStatus IoContextImpl::handle_pending_connection_events(
   const sock::Poller::PollEntry& entry,
-  std::shared_ptr<TcpConnectionImpl>& connection) {
+  const std::shared_ptr<TcpConnectionImpl>& connection) {
   const auto next_connection = [&](Status status) {
     if (!connection->attempt_next_address(connection, status)) {
       return PendingConnectionStatus::Failed;
@@ -187,7 +188,7 @@ IoContextImpl::PendingConnectionStatus IoContextImpl::handle_pending_connection_
 }
 
 void IoContextImpl::handle_connection_events(const sock::Poller::PollEntry& entry,
-                                             std::shared_ptr<TcpConnectionImpl>& connection) {
+                                             const std::shared_ptr<TcpConnectionImpl>& connection) {
   constexpr static size_t base_receive_fragment_size = 16 * 1024;
   constexpr static size_t max_receive_fragment_size = 16 * 1024 * 1024;
   constexpr static size_t max_send_fragment_size = 32 * 1024 * 1024;
@@ -226,7 +227,8 @@ void IoContextImpl::handle_connection_events(const sock::Poller::PollEntry& entr
   };
 
   if (entry.has_events(sock::Poller::StatusEvents::CanReceiveFrom) &&
-      connection->state == TcpConnection::State::Connected && connection->on_data_received) {
+      connection->state == TcpConnection::State::Connected && connection->receive_packets &&
+      connection->on_data_received) {
     sock::Status receive_error = {};
     size_t total_bytes_received = 0;
 

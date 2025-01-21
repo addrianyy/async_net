@@ -123,6 +123,13 @@ void TcpListenerImpl::startup(std::shared_ptr<TcpListenerImpl> self,
     });
 }
 
+void TcpListenerImpl::startup(std::shared_ptr<TcpListenerImpl> self,
+                              std::vector<SocketAddress> addresses) {
+  context.post([self = std::move(self), addresses = std::move(addresses)] {
+    self->listen_immediate(self, addresses);
+  });
+}
+
 void TcpListenerImpl::startup(std::shared_ptr<TcpListenerImpl> self, SocketAddress address) {
   context.post([self = std::move(self), address] {
     const SocketAddress socket_addresses[]{address};

@@ -26,21 +26,31 @@ bool WebSocketAcceptingClientImpl::handle_handshake_request(
     masking_settings.receive_masked = false;
   }
 
-  const auto validate_result = websocket::handshake::server::validate_http_request(request);
-  if (validate_result != websocket::handshake::Error::Ok) {
+  const auto reject = [&] {
     (void)connection.send([&](base::BinaryBuffer& buffer) {
       const auto response = websocket::http::Serializer::serialize(
         websocket::handshake::server::respond_error_to_http_request(request, 401));
       buffer.append(response.data(), response.size());
     });
+  };
 
+  const auto validate_result = websocket::handshake::server::validate_http_request(request);
+  if (validate_result != websocket::handshake::Error::Ok) {
+    reject();
     log_warn("accepting WebSocket client: received invalid HTTP request");
-
     return false;
   }
 
   if (auto serverS = server.lock()) {
-    if (!serverS->on_client_connected) {
+    if (serverS->on_connection_request) {
+      if (!serverS->on_connection_request(request.uri, connection.peer_address())) {
+        reject();
+        return false;
+      }
+    }
+
+    if (!serverS->on_client_connected || serverS->state() != WebSocketServer::State::Listening) {
+      reject();
       return false;
     }
 
@@ -57,13 +67,10 @@ bool WebSocketAcceptingClientImpl::handle_handshake_request(
       return false;
     }
 
-    // Clear some of the callbacks immediately.
-    connection.set_on_disconnected(nullptr, true);
-    connection.set_on_error(nullptr, true);
-
-    // We are running in the on_data_received callback so we shouldn't modify it.
-    // on_client_connected will just do a deferred set on it. This is fine as on_data_received will
-    // be called just once per run().
+    // Clear the callbacks.
+    connection.set_on_disconnected(nullptr);
+    connection.set_on_error(nullptr);
+    connection.set_on_data_received(nullptr);
 
     WebSocketClient client{std::move(connection), masking_settings};
     serverS->on_client_connected(request.uri, std::move(client));

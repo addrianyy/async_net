@@ -1,7 +1,7 @@
 #include "TcpListener.hpp"
 #include "IoContext.hpp"
-#include "detail/SetCallback.hpp"
 #include "detail/TcpListenerImpl.hpp"
+#include "detail/UpdateCallback.hpp"
 
 namespace async_net {
 
@@ -16,6 +16,11 @@ TcpListener::TcpListener(IoContext& context, const IpAddress& address, uint16_t 
 TcpListener::TcpListener(IoContext& context, const SocketAddress& address)
     : impl_(std::make_shared<detail::TcpListenerImpl>(context)) {
   impl_->startup(impl_, address);
+}
+
+TcpListener::TcpListener(IoContext& context, std::vector<SocketAddress> addresses)
+    : impl_(std::make_shared<detail::TcpListenerImpl>(context)) {
+  impl_->startup(impl_, std::move(addresses));
 }
 
 TcpListener::TcpListener(IoContext& context, uint16_t port)
@@ -70,16 +75,22 @@ void TcpListener::shutdown() {
   }
 }
 
-void TcpListener::set_on_listening(std::function<void()> callback, bool instant) {
-  SET_CALLBACK_SAFE(on_listening);
+void TcpListener::set_on_listening(std::function<void()> callback) {
+  if (impl_) {
+    detail::update_callback(impl_->context, impl_->on_listening, std::move(callback));
+  }
 }
 
-void TcpListener::set_on_error(std::function<void(Status)> callback, bool instant) {
-  SET_CALLBACK_SAFE(on_error);
+void TcpListener::set_on_error(std::function<void(Status)> callback) {
+  if (impl_) {
+    detail::update_callback(impl_->context, impl_->on_error, std::move(callback));
+  }
 }
 
-void TcpListener::set_on_accept(std::function<void(Status, TcpConnection)> callback, bool instant) {
-  SET_CALLBACK_SAFE(on_accept);
+void TcpListener::set_on_accept(std::function<void(Status, TcpConnection)> callback) {
+  if (impl_) {
+    detail::update_callback(impl_->context, impl_->on_accept, std::move(callback));
+  }
 }
 
 }  // namespace async_net

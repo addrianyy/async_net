@@ -1,5 +1,5 @@
 #include "WebSocketServerImpl.hpp"
-#include "SetCallback.hpp"
+#include "UpdateCallback.hpp"
 #include "WebSocketAcceptingClientImpl.hpp"
 
 #include <async_net/TcpConnection.hpp>
@@ -16,6 +16,7 @@ void WebSocketServerImpl::cleanup_deferred(std::shared_ptr<WebSocketServerImpl> 
 
     self->on_listening = nullptr;
     self->on_error = nullptr;
+    self->on_connection_request = nullptr;
     self->on_client_connected = nullptr;
   });
 }
@@ -83,23 +84,22 @@ void WebSocketServerImpl::shutdown(std::shared_ptr<WebSocketServerImpl> self) {
   }
 }
 
-void WebSocketServerImpl::set_on_listening(const std::shared_ptr<WebSocketServerImpl>& self,
-                                           std::function<void()> callback,
-                                           bool instant) {
-  SET_CALLBACK_SAFE(on_listening);
+void WebSocketServerImpl::set_on_listening(std::function<void()> callback) {
+  detail::update_callback(context, on_listening, std::move(callback));
 }
 
-void WebSocketServerImpl::set_on_error(const std::shared_ptr<WebSocketServerImpl>& self,
-                                       std::function<void(Status)> callback,
-                                       bool instant) {
-  SET_CALLBACK_SAFE(on_error);
+void WebSocketServerImpl::set_on_error(std::function<void(Status)> callback) {
+  detail::update_callback(context, on_error, std::move(callback));
+}
+
+void WebSocketServerImpl::set_on_connection_request(
+  std::function<bool(std::string_view, async_net::SocketAddress)> callback) {
+  detail::update_callback(context, on_connection_request, std::move(callback));
 }
 
 void WebSocketServerImpl::set_on_client_connected(
-  const std::shared_ptr<WebSocketServerImpl>& self,
-  std::function<void(std::string_view, WebSocketClient)> callback,
-  bool instant) {
-  SET_CALLBACK_SAFE(on_client_connected);
+  std::function<void(std::string_view, WebSocketClient)> callback) {
+  detail::update_callback(context, on_client_connected, std::move(callback));
 }
 
 }  // namespace async_ws::detail

@@ -80,6 +80,9 @@ class WebSocketClient {
   bool block_on_send_buffer_full() const;
   void set_block_on_send_buffer_full(bool block);
 
+  bool receive_packets() const;
+  void set_receive_packets(bool receive) const;
+
   bool can_send_message(size_t size) const;
 
   [[nodiscard]] bool send_text_message(std::string_view payload);
@@ -92,18 +95,16 @@ class WebSocketClient {
 
   void shutdown();
 
-  void set_on_connection_succeeded(std::function<void()> callback, bool instant = false);
-  void set_on_connection_failed(std::function<void(Status)> callback, bool instant = false);
+  void set_on_connection_succeeded(std::function<void()> callback);
+  void set_on_connection_failed(std::function<void(Status)> callback);
 
-  void set_on_disconnected(std::function<void()> callback, bool instant = false);
-  void set_on_error(std::function<void(Status)> callback, bool instant = false);
+  void set_on_disconnected(std::function<void()> callback);
+  void set_on_error(std::function<void(Status)> callback);
 
-  void set_on_text_message_received(std::function<void(std::string_view)> callback,
-                                    bool instant = false);
-  void set_on_binary_message_received(std::function<void(std::span<const uint8_t>)> callback,
-                                      bool instant = false);
+  void set_on_text_message_received(std::function<void(std::string_view)> callback);
+  void set_on_binary_message_received(std::function<void(std::span<const uint8_t>)> callback);
 
-  void set_on_data_sent(std::function<void()> callback, bool instant = false);
+  void set_on_data_sent(std::function<void()> callback);
 };
 
 }  // namespace async_ws

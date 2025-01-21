@@ -61,23 +61,29 @@ void WebSocketServer::shutdown() {
   }
 }
 
-void WebSocketServer::set_on_listening(std::function<void()> callback, bool instant) {
+void WebSocketServer::set_on_listening(std::function<void()> callback) {
   if (impl_) {
-    impl_->set_on_listening(impl_, std::move(callback), instant);
+    impl_->set_on_listening(std::move(callback));
   }
 }
 
-void WebSocketServer::set_on_error(std::function<void(Status)> callback, bool instant) {
+void WebSocketServer::set_on_error(std::function<void(Status)> callback) {
   if (impl_) {
-    impl_->set_on_error(impl_, std::move(callback), instant);
+    impl_->set_on_error(std::move(callback));
+  }
+}
+
+void WebSocketServer::set_on_connection_request(
+  std::function<bool(std::string_view, async_net::SocketAddress)> callback) {
+  if (impl_) {
+    impl_->set_on_connection_request(std::move(callback));
   }
 }
 
 void WebSocketServer::set_on_client_connected(
-  std::function<void(std::string_view, WebSocketClient)> callback,
-  bool instant) {
+  std::function<void(std::string_view, WebSocketClient)> callback) {
   if (impl_) {
-    impl_->set_on_client_connected(impl_, std::move(callback), instant);
+    impl_->set_on_client_connected(std::move(callback));
   }
 }
 

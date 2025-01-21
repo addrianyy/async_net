@@ -1,5 +1,4 @@
 #include "IoContext.hpp"
-
 #include "detail/IoContextImpl.hpp"
 
 namespace async_net {

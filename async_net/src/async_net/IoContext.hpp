@@ -43,6 +43,12 @@ class IoContext {
   ~IoContext();
 
   void post(std::function<void()> callback);
+
+  template <typename T>
+  void post_destroy(T value) {
+    post([value_to_destroy = std::move(value)] { (void)value_to_destroy; });
+  }
+
   void post_atomic(std::function<void()> callback);
 
   [[nodiscard]] RunResult run(const RunParameters& parameters);

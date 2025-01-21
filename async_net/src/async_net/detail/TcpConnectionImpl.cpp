@@ -84,7 +84,8 @@ void TcpConnectionImpl::setup_connecting_timeout(const std::shared_ptr<TcpConnec
     context, base::PreciseTime::from_milliseconds(300), [selfW = std::move(selfW)] {
       if (auto selfS = selfW.lock()) {
         if (selfS->state == TcpConnection::State::Connecting) {
-          // Don't use TimedOut here to make the result consistent between OSes.
+          // Don't use TimedOut here to make the result consistent with OSes that have sane
+          // connection timeouts.
           const auto succeeded = selfS->attempt_next_address(
             selfS, {
                      .error = sock::Error::ConnectFailed,
@@ -246,6 +247,13 @@ void TcpConnectionImpl::startup(std::shared_ptr<TcpConnectionImpl> self,
         self->cleanup_before_register();
       }
     });
+}
+
+void TcpConnectionImpl::startup(std::shared_ptr<TcpConnectionImpl> self,
+                                std::vector<SocketAddress> addresses) {
+  context.post([self = std::move(self), addresses = std::move(addresses)]() mutable {
+    self->connect_immediate(self, std::move(addresses));
+  });
 }
 
 void TcpConnectionImpl::startup(std::shared_ptr<TcpConnectionImpl> self, SocketAddress address) {

@@ -44,12 +44,12 @@ class IoContextImpl {
   void register_poll_entries();
 
   void handle_listener_events(const sock::Poller::PollEntry& entry,
-                              std::shared_ptr<TcpListenerImpl>& listener);
+                              const std::shared_ptr<TcpListenerImpl>& listener);
   PendingConnectionStatus handle_pending_connection_events(
     const sock::Poller::PollEntry& entry,
-    std::shared_ptr<TcpConnectionImpl>& connection);
+    const std::shared_ptr<TcpConnectionImpl>& connection);
   void handle_connection_events(const sock::Poller::PollEntry& entry,
-                                std::shared_ptr<TcpConnectionImpl>& connection);
+                                const std::shared_ptr<TcpConnectionImpl>& connection);
 
   void handle_poll_events();
 

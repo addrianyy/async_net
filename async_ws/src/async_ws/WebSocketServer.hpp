@@ -58,10 +58,11 @@ class WebSocketServer {
 
   void shutdown();
 
-  void set_on_listening(std::function<void()> callback, bool instant = false);
-  void set_on_error(std::function<void(Status)> callback, bool instant = false);
-  void set_on_client_connected(std::function<void(std::string_view, WebSocketClient)> callback,
-                               bool instant = false);
+  void set_on_listening(std::function<void()> callback);
+  void set_on_error(std::function<void(Status)> callback);
+  void set_on_connection_request(
+    std::function<bool(std::string_view, async_net::SocketAddress)> callback);
+  void set_on_client_connected(std::function<void(std::string_view, WebSocketClient)> callback);
 };
 
 }  // namespace async_ws

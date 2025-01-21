@@ -1,7 +1,7 @@
 #include "TcpConnection.hpp"
 #include "IoContext.hpp"
-#include "detail/SetCallback.hpp"
 #include "detail/TcpConnectionImpl.hpp"
+#include "detail/UpdateCallback.hpp"
 
 namespace async_net {
 
@@ -25,6 +25,11 @@ TcpConnection::TcpConnection(IoContext& context, const IpAddress& address, uint1
 TcpConnection::TcpConnection(IoContext& context, const SocketAddress& address)
     : impl_(std::make_shared<detail::TcpConnectionImpl>(context)) {
   impl_->startup(impl_, address);
+}
+
+TcpConnection::TcpConnection(async_net::IoContext& context, std::vector<SocketAddress> addresses)
+    : impl_(std::make_shared<detail::TcpConnectionImpl>(context)) {
+  impl_->startup(impl_, std::move(addresses));
 }
 
 TcpConnection::~TcpConnection() {
@@ -107,6 +112,16 @@ void TcpConnection::set_block_on_send_buffer_full(bool block) {
   }
 }
 
+bool TcpConnection::receive_packets() const {
+  return impl_ ? impl_->receive_packets : false;
+}
+
+void TcpConnection::set_receive_packets(bool receive) const {
+  if (impl_) {
+    impl_->receive_packets = receive;
+  }
+}
+
 bool TcpConnection::send_data(std::span<const uint8_t> data) {
   return send([&](base::BinaryBuffer& buffer) { buffer.append(data); });
 }
@@ -122,26 +137,37 @@ void TcpConnection::shutdown() {
   }
 }
 
-void TcpConnection::set_on_connection_succeeded(std::function<void()> callback, bool instant) {
-  SET_CALLBACK_SAFE(on_connection_succeeded);
+void TcpConnection::set_on_connection_succeeded(std::function<void()> callback) {
+  if (impl_) {
+    detail::update_callback(impl_->context, impl_->on_connection_succeeded, std::move(callback));
+  }
 }
-void TcpConnection::set_on_connection_failed(std::function<void(Status)> callback, bool instant) {
-  SET_CALLBACK_SAFE(on_connection_failed);
-}
-
-void TcpConnection::set_on_disconnected(std::function<void()> callback, bool instant) {
-  SET_CALLBACK_SAFE(on_disconnected);
-}
-void TcpConnection::set_on_error(std::function<void(Status)> callback, bool instant) {
-  SET_CALLBACK_SAFE(on_error);
+void TcpConnection::set_on_connection_failed(std::function<void(Status)> callback) {
+  if (impl_) {
+    detail::update_callback(impl_->context, impl_->on_connection_failed, std::move(callback));
+  }
 }
 
-void TcpConnection::set_on_data_received(std::function<size_t(std::span<const uint8_t>)> callback,
-                                         bool instant) {
-  SET_CALLBACK_SAFE(on_data_received);
+void TcpConnection::set_on_disconnected(std::function<void()> callback) {
+  if (impl_) {
+    detail::update_callback(impl_->context, impl_->on_disconnected, std::move(callback));
+  }
 }
-void TcpConnection::set_on_data_sent(std::function<void()> callback, bool instant) {
-  SET_CALLBACK_SAFE(on_data_sent);
+void TcpConnection::set_on_error(std::function<void(Status)> callback) {
+  if (impl_) {
+    detail::update_callback(impl_->context, impl_->on_error, std::move(callback));
+  }
+}
+
+void TcpConnection::set_on_data_received(std::function<size_t(std::span<const uint8_t>)> callback) {
+  if (impl_) {
+    detail::update_callback(impl_->context, impl_->on_data_received, std::move(callback));
+  }
+}
+void TcpConnection::set_on_data_sent(std::function<void()> callback) {
+  if (impl_) {
+    detail::update_callback(impl_->context, impl_->on_data_sent, std::move(callback));
+  }
 }
 
 }  // namespace async_net

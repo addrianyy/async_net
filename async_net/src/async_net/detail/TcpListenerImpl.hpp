@@ -8,6 +8,7 @@
 #include <socklib/Socket.hpp>
 
 #include <functional>
+#include <vector>
 
 namespace async_net {
 
@@ -52,6 +53,7 @@ class TcpListenerImpl {
   bool is_listening() const { return state == TcpListener::State::Listening; }
 
   void startup(std::shared_ptr<TcpListenerImpl> self, std::string hostname, uint16_t port);
+  void startup(std::shared_ptr<TcpListenerImpl> self, std::vector<SocketAddress> addresses);
   void startup(std::shared_ptr<TcpListenerImpl> self, SocketAddress address);
   void shutdown(std::shared_ptr<TcpListenerImpl> self);
 

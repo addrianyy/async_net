@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <base/macro/ClassTraits.hpp>
 
@@ -36,6 +37,7 @@ class TcpListener {
   TcpListener(IoContext& context, std::string hostname, uint16_t port);
   TcpListener(IoContext& context, const IpAddress& address, uint16_t port);
   TcpListener(IoContext& context, const SocketAddress& address);
+  TcpListener(IoContext& context, std::vector<SocketAddress> addresses);
   TcpListener(IoContext& context, uint16_t port);
   ~TcpListener();
 
@@ -57,9 +59,9 @@ class TcpListener {
 
   void shutdown();
 
-  void set_on_listening(std::function<void()> callback, bool instant = false);
-  void set_on_error(std::function<void(Status)> callback, bool instant = false);
-  void set_on_accept(std::function<void(Status, TcpConnection)> callback, bool instant = false);
+  void set_on_listening(std::function<void()> callback);
+  void set_on_error(std::function<void(Status)> callback);
+  void set_on_accept(std::function<void(Status, TcpConnection)> callback);
 };
 
 }  // namespace async_net

@@ -55,6 +55,8 @@ class TcpConnectionImpl {
   sock::StreamSocket socket;
   std::unique_ptr<ConnectingState> connecting_state;
 
+  bool receive_packets{true};
+
   base::BinaryBuffer receive_buffer;
   base::BinaryBuffer send_buffer;
   size_t send_buffer_offset{};
@@ -93,6 +95,7 @@ class TcpConnectionImpl {
 
   void startup(std::shared_ptr<TcpConnectionImpl> self, sock::StreamSocket connection);
   void startup(std::shared_ptr<TcpConnectionImpl> self, std::string hostname, uint16_t port);
+  void startup(std::shared_ptr<TcpConnectionImpl> self, std::vector<SocketAddress> addresses);
   void startup(std::shared_ptr<TcpConnectionImpl> self, SocketAddress address);
   void shutdown(std::shared_ptr<TcpConnectionImpl> self);
 

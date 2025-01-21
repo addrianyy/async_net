@@ -11,6 +11,6 @@ target_sources(async_net PUBLIC
     IoContextImpl.hpp
     Common.cpp
     Common.hpp
-    SetCallback.cpp
-    SetCallback.hpp
+    UpdateCallback.cpp
+    UpdateCallback.hpp
 )
