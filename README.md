@@ -1,6 +1,6 @@
-## Asynchronous, multi-platform networking library for TCP and WebSocket
+## Asynchronous, multi-platform networking library for TCP, UDP and WebSocket
 
-- async_net: async networking library for TCP
+- async_net: async networking library for TCP and UDP
 - async_ws: async WebSocket implementation based on async_net
 
 ```c++
