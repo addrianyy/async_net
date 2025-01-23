@@ -67,6 +67,7 @@ class WebSocketClient {
 
   uint64_t total_bytes_sent() const;
   uint64_t total_bytes_received() const;
+  async_net::SocketAddress local_address() const;
   async_net::SocketAddress peer_address() const;
 
   size_t send_buffer_remaining_size() const;

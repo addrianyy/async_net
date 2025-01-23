@@ -68,6 +68,10 @@ uint64_t TcpConnection::total_bytes_received() const {
   return impl_ ? impl_->total_bytes_received : 0;
 }
 
+SocketAddress TcpConnection::local_address() const {
+  return impl_ ? impl_->local_address : SocketAddress{};
+}
+
 SocketAddress TcpConnection::peer_address() const {
   return impl_ ? impl_->peer_addreess : SocketAddress{};
 }

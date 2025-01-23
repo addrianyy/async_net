@@ -60,9 +60,10 @@ class TcpConnectionImpl {
   base::BinaryBuffer receive_buffer;
   base::BinaryBuffer send_buffer;
   size_t send_buffer_offset{};
-  size_t send_buffer_max_size{8 * 1024 * 1024};
+  size_t send_buffer_max_size{default_send_buffer_max_size};
   bool block_on_send_buffer_full{true};
 
+  SocketAddress local_address{};
   SocketAddress peer_addreess{};
   uint64_t total_bytes_received{};
   uint64_t total_bytes_sent{};

@@ -11,16 +11,21 @@
 
 #include <socklib/Socket.hpp>
 
+#include <base/containers/BinaryBuffer.hpp>
 #include <base/macro/ClassTraits.hpp>
 
 namespace async_net::detail {
 
 class TcpListenerImpl;
 class TcpConnectionImpl;
+class UdpSocketImpl;
 
 class IoContextImpl {
   std::vector<std::shared_ptr<TcpListenerImpl>> tcp_listeners;
   std::vector<std::shared_ptr<TcpConnectionImpl>> tcp_connections;
+  std::vector<std::shared_ptr<UdpSocketImpl>> udp_sockets;
+
+  base::BinaryBuffer udp_receive_buffer;
 
   std::unique_ptr<sock::Poller> poller;
   std::vector<sock::Poller::PollEntry> poll_entries;
@@ -43,13 +48,16 @@ class IoContextImpl {
 
   void register_poll_entries();
 
-  void handle_listener_events(const sock::Poller::PollEntry& entry,
-                              const std::shared_ptr<TcpListenerImpl>& listener);
-  PendingConnectionStatus handle_pending_connection_events(
+  void handle_tcp_listener_events(const sock::Poller::PollEntry& entry,
+                                  const std::shared_ptr<TcpListenerImpl>& listener);
+  PendingConnectionStatus handle_tcp_pending_connection_events(
     const sock::Poller::PollEntry& entry,
     const std::shared_ptr<TcpConnectionImpl>& connection);
-  void handle_connection_events(const sock::Poller::PollEntry& entry,
-                                const std::shared_ptr<TcpConnectionImpl>& connection);
+  void handle_tcp_connection_events(const sock::Poller::PollEntry& entry,
+                                    const std::shared_ptr<TcpConnectionImpl>& connection);
+
+  void handle_udp_socket_events(const sock::Poller::PollEntry& entry,
+                                const std::shared_ptr<UdpSocketImpl>& socket);
 
   void handle_poll_events();
 
@@ -58,6 +66,7 @@ class IoContextImpl {
 
   void drain_tcp_listeners();
   void drain_tcp_connections();
+  void drain_udp_sockets();
 
   void drain_deferred_work();
   void drain_deferred_work_atomic();
@@ -74,6 +83,9 @@ class IoContextImpl {
 
   void register_tcp_connection(std::shared_ptr<TcpConnectionImpl> connection);
   void unregister_tcp_connection(TcpConnectionImpl* connection);
+
+  void register_udp_socket(std::shared_ptr<UdpSocketImpl> socket);
+  void unregister_udp_socket(UdpSocketImpl* socket);
 
   void queue_deferred_work(std::function<void()> callback);
   void queue_deferred_work_atomic(std::function<void()> callback);

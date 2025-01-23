@@ -63,6 +63,10 @@ uint64_t WebSocketClient::total_bytes_received() const {
   return impl_ ? impl_->total_bytes_received() : 0;
 }
 
+async_net::SocketAddress WebSocketClient::local_address() const {
+  return impl_ ? impl_->local_address() : async_net::SocketAddress{};
+}
+
 async_net::SocketAddress WebSocketClient::peer_address() const {
   return impl_ ? impl_->peer_address() : async_net::SocketAddress{};
 }

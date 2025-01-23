@@ -1,7 +1,7 @@
 #include <base/Initialization.hpp>
 #include <base/Log.hpp>
 #include <base/Panic.hpp>
-#include <base/text/Helpers.hpp>
+#include <base/text/Text.hpp>
 
 #include <async_net/IoContext.hpp>
 #include <async_net/TcpConnection.hpp>

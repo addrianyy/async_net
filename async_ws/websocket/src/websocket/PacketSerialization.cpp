@@ -280,7 +280,18 @@ Deserializer::Result Deserializer::deserialize(std::span<const uint8_t> data) {
 }
 
 void mask_packet_payload(MaskingKey key, std::span<uint8_t> payload) {
-  for (size_t i = 0; i < payload.size(); i++) {
+  const uint32_t masking_key_u32 = (uint32_t(key[0]) << 0) | (uint32_t(key[1]) << 8) |
+                                   (uint32_t(key[2]) << 16) | (uint32_t(key[3]) << 24);
+  const uint64_t masking_key_u64 = uint64_t(masking_key_u32) | (uint64_t(masking_key_u32) << 32);
+
+  const auto u64s = reinterpret_cast<uint64_t*>(payload.data());
+  const auto u64_count = payload.size() / sizeof(uint64_t);
+
+  for (size_t i = 0; i < u64_count; ++i) {
+    u64s[i] ^= masking_key_u64;
+  }
+
+  for (size_t i = u64_count * sizeof(uint64_t); i < payload.size(); i++) {
     payload[i] ^= key[i % 4];
   }
 }

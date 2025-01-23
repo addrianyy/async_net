@@ -66,6 +66,9 @@ bool TcpConnectionImpl::prepare_unregister() {
 }
 
 void TcpConnectionImpl::enter_connected_state(bool invoke_callbacks) {
+  if (const auto result = socket.local_address<SocketAddress>()) {
+    local_address = result.value;
+  }
   if (const auto result = socket.peer_address<SocketAddress>()) {
     peer_addreess = result.value;
   }

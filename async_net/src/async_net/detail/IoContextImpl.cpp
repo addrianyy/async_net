@@ -1,6 +1,7 @@
 #include "IoContextImpl.hpp"
 #include "TcpConnectionImpl.hpp"
 #include "TcpListenerImpl.hpp"
+#include "UdpSocketImpl.hpp"
 
 #include <socklib/Socket.hpp>
 
@@ -79,10 +80,27 @@ void IoContextImpl::register_poll_entries() {
       .query_events = query_events,
     });
   }
+
+  for (const auto& socket : udp_sockets) {
+    auto query_events = sock::Poller::QueryEvents::None;
+    if (socket->state == UdpSocket::State::Bound && socket->receive_packets &&
+        socket->on_data_received &&
+        (!socket->block_on_send_buffer_full || !socket->is_send_buffer_full())) {
+      query_events = query_events | sock::Poller::QueryEvents::CanReceiveFrom;
+    }
+    if (socket->can_send_packets && !socket->send_entries.empty()) {
+      query_events = query_events | sock::Poller::QueryEvents::CanSendTo;
+    }
+
+    poll_entries.emplace_back(sock::Poller::PollEntry{
+      .socket = &socket->socket,
+      .query_events = query_events,
+    });
+  }
 }
 
-void IoContextImpl::handle_listener_events(const sock::Poller::PollEntry& entry,
-                                           const std::shared_ptr<TcpListenerImpl>& listener) {
+void IoContextImpl::handle_tcp_listener_events(const sock::Poller::PollEntry& entry,
+                                               const std::shared_ptr<TcpListenerImpl>& listener) {
   if (entry.has_any_event(sock::Poller::StatusEvents::Disconnected |
                           sock::Poller::StatusEvents::InvalidSocket |
                           sock::Poller::StatusEvents::Error)) {
@@ -130,7 +148,7 @@ void IoContextImpl::handle_listener_events(const sock::Poller::PollEntry& entry,
   }
 }
 
-IoContextImpl::PendingConnectionStatus IoContextImpl::handle_pending_connection_events(
+IoContextImpl::PendingConnectionStatus IoContextImpl::handle_tcp_pending_connection_events(
   const sock::Poller::PollEntry& entry,
   const std::shared_ptr<TcpConnectionImpl>& connection) {
   const auto next_connection = [&](Status status) {
@@ -187,14 +205,15 @@ IoContextImpl::PendingConnectionStatus IoContextImpl::handle_pending_connection_
   return PendingConnectionStatus::StillWaiting;
 }
 
-void IoContextImpl::handle_connection_events(const sock::Poller::PollEntry& entry,
-                                             const std::shared_ptr<TcpConnectionImpl>& connection) {
+void IoContextImpl::handle_tcp_connection_events(
+  const sock::Poller::PollEntry& entry,
+  const std::shared_ptr<TcpConnectionImpl>& connection) {
   constexpr static size_t base_receive_fragment_size = 16 * 1024;
   constexpr static size_t max_receive_fragment_size = 16 * 1024 * 1024;
   constexpr static size_t max_send_fragment_size = 32 * 1024 * 1024;
 
   if (connection->connecting_state) {
-    const auto status = handle_pending_connection_events(entry, connection);
+    const auto status = handle_tcp_pending_connection_events(entry, connection);
     if (status == PendingConnectionStatus::Failed) {
       connection->unregister_during_runloop(connection);
       return;
@@ -279,7 +298,7 @@ void IoContextImpl::handle_connection_events(const sock::Poller::PollEntry& entr
                           sock::Poller::StatusEvents::Error |
                           sock::Poller::StatusEvents::Disconnected)) {
     if (connection->state == TcpConnection::State::Connected) {
-      auto error = connection->connecting_state->socket.last_error();
+      auto error = connection->socket.last_error();
       if (error == SystemError::None) {
         error = SystemError::Unknown;
       }
@@ -342,18 +361,129 @@ void IoContextImpl::handle_connection_events(const sock::Poller::PollEntry& entr
   }
 }
 
+void IoContextImpl::handle_udp_socket_events(const sock::Poller::PollEntry& entry,
+                                             const std::shared_ptr<UdpSocketImpl>& socket) {
+  const auto on_socket_error = [&](sock::Status status) {
+    verify(!status, "cannot handle non-error status");
+
+    if (socket->state == UdpSocket::State::Bound) {
+      socket->state = UdpSocket::State::Error;
+      if (socket->on_error) {
+        socket->on_error(status);
+      } else {
+        log_error("failed to process UDP socket: {}", status.stringify());
+      }
+    }
+
+    socket->unregister_during_runloop(socket);
+  };
+
+  if (entry.has_events(sock::Poller::StatusEvents::CanReceiveFrom)) {
+    SocketAddress peer_address;
+
+    while (socket->state == UdpSocket::State::Bound && socket->receive_packets &&
+           socket->on_data_received) {
+      const auto [status, bytes_received] =
+        socket->socket.receive_from(peer_address, udp_receive_buffer);
+      if (!status) {
+        if (!status.would_block()) {
+          on_socket_error(status);
+        }
+        break;
+      }
+
+      socket->total_bytes_received += bytes_received;
+      socket->on_data_received(peer_address, udp_receive_buffer.span().subspan(0, bytes_received));
+    }
+  }
+
+  if (entry.has_any_event(sock::Poller::StatusEvents::InvalidSocket |
+                          sock::Poller::StatusEvents::Error |
+                          sock::Poller::StatusEvents::Disconnected)) {
+    if (socket->state == UdpSocket::State::Bound) {
+      auto error = socket->socket.last_error();
+      if (error == SystemError::None) {
+        error = SystemError::Unknown;
+      }
+
+      on_socket_error(sock::Status{
+        .error = sock::Error::PollFailed,
+        .system_error = error,
+      });
+    } else {
+      socket->unregister_during_runloop(socket);
+    }
+  }
+
+  if (entry.has_events(sock::Poller::StatusEvents::CanSendTo) && socket->can_send_packets) {
+    size_t total_bytes_sent = 0;
+    size_t send_entries_processed = 0;
+
+    // This vector can be modified (items inserted) in the callback so we need to watch out.
+    for (size_t i = 0; i < socket->send_entries.size(); ++i) {
+      const auto send_entry = socket->send_entries[i];
+
+      const auto send_data =
+        socket->send_buffer.span().subspan(socket->send_buffer_offset, send_entry.datagram_size);
+      const auto [status, bytes_sent] = socket->socket.send_to(send_entry.destination, send_data);
+      if (status.would_block()) {
+        break;
+      }
+
+      socket->send_buffer_offset += send_data.size();
+      send_entries_processed++;
+
+      if (status) {
+        total_bytes_sent += bytes_sent;
+      }
+
+      if (socket->on_send_failed) {
+        if (!status) {
+          socket->on_send_failed(status);
+        } else if (bytes_sent < send_entry.datagram_size) {
+          socket->on_send_failed({
+            .error = sock::Error::SizeTooLarge,
+          });
+        }
+      }
+    }
+
+    if (send_entries_processed > 0) {
+      socket->send_entries.erase(socket->send_entries.begin(),
+                                 socket->send_entries.begin() + ptrdiff_t(send_entries_processed));
+    }
+
+    if (total_bytes_sent > 0) {
+      socket->total_bytes_sent += total_bytes_sent;
+
+      if (socket->state == UdpSocket::State::Bound && socket->on_data_sent) {
+        socket->on_data_sent();
+      }
+    }
+
+    if (socket->send_entries.empty() && socket->state != UdpSocket::State::Bound) {
+      socket->unregister_during_runloop(socket);
+    }
+  }
+}
+
 void IoContextImpl::handle_poll_events() {
   size_t entry_index = 0;
 
   for (size_t i = 0; i < tcp_listeners.size(); ++i) {
-    handle_listener_events(poll_entries[entry_index + i], tcp_listeners[i]);
+    handle_tcp_listener_events(poll_entries[entry_index + i], tcp_listeners[i]);
   }
   entry_index += tcp_listeners.size();
 
   for (size_t i = 0; i < tcp_connections.size(); ++i) {
-    handle_connection_events(poll_entries[entry_index + i], tcp_connections[i]);
+    handle_tcp_connection_events(poll_entries[entry_index + i], tcp_connections[i]);
   }
   entry_index += tcp_connections.size();
+
+  for (size_t i = 0; i < udp_sockets.size(); ++i) {
+    handle_udp_socket_events(poll_entries[entry_index + i], udp_sockets[i]);
+  }
+  entry_index += udp_sockets.size();
 }
 
 void IoContextImpl::run_deferred_work() {
@@ -401,6 +531,17 @@ void IoContextImpl::drain_tcp_connections() {
   temp.clear();
 }
 
+void IoContextImpl::drain_udp_sockets() {
+  for (auto& socket : udp_sockets) {
+    socket->state = UdpSocket::State::Shutdown;
+    socket->context_index = invalid_context_index;
+  }
+
+  std::vector<std::shared_ptr<UdpSocketImpl>> temp;
+  std::swap(temp, udp_sockets);
+  temp.clear();
+}
+
 void IoContextImpl::drain_deferred_work() {
   while (!deferred_work_write.empty()) {
     std::swap(deferred_work_write, deferred_work_read);
@@ -418,8 +559,8 @@ void IoContextImpl::drain_deferred_work_atomic() {
 }
 
 bool IoContextImpl::has_any_non_atomic_work() const {
-  return !(tcp_listeners.empty() && tcp_connections.empty() && deferred_work_write.empty() &&
-           timer_manager.empty() && ip_resolver.empty());
+  return !(tcp_listeners.empty() && tcp_connections.empty() && udp_sockets.empty() &&
+           deferred_work_write.empty() && timer_manager.empty() && ip_resolver.empty());
 }
 
 IoContextImpl::IoContextImpl() : ip_resolver(*this) {
@@ -443,6 +584,17 @@ void IoContextImpl::register_tcp_connection(std::shared_ptr<TcpConnectionImpl> c
 
 void IoContextImpl::unregister_tcp_connection(TcpConnectionImpl* connection) {
   ContextEntryRegistration::unregister_entry(tcp_connections, connection);
+}
+
+void IoContextImpl::register_udp_socket(std::shared_ptr<UdpSocketImpl> socket) {
+  ContextEntryRegistration::register_entry(udp_sockets, std::move(socket));
+  if (udp_receive_buffer.empty()) {
+    udp_receive_buffer.resize(max_datagram_size);
+  }
+}
+
+void IoContextImpl::unregister_udp_socket(UdpSocketImpl* socket) {
+  ContextEntryRegistration::unregister_entry(udp_sockets, socket);
 }
 
 void IoContextImpl::queue_deferred_work(std::function<void()> callback) {
@@ -547,6 +699,7 @@ void IoContextImpl::drain() {
     drain_deferred_work();
     drain_tcp_listeners();
     drain_tcp_connections();
+    drain_udp_sockets();
     drain_deferred_work_atomic();
     ip_resolver.drain();
     timer_manager.drain();

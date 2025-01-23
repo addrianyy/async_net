@@ -7,6 +7,8 @@ target_sources(async_net PUBLIC
     TcpConnectionImpl.hpp
     TcpListenerImpl.cpp
     TcpListenerImpl.hpp
+    UdpSocketImpl.cpp
+    UdpSocketImpl.hpp
     IoContextImpl.cpp
     IoContextImpl.hpp
     Common.cpp

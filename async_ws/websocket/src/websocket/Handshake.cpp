@@ -3,7 +3,7 @@
 
 #include <base/Panic.hpp>
 #include <base/text/Base64.hpp>
-#include <base/text/Helpers.hpp>
+#include <base/text/Text.hpp>
 
 #include <base/rng/Xorshift.hpp>
 

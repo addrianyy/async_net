@@ -14,12 +14,14 @@ namespace detail {
 class IoContextImpl;
 class TcpConnectionImpl;
 class TcpListenerImpl;
+class UdpSocketImpl;
 }  // namespace detail
 
 class IoContext {
   friend detail::IoContextImpl;
   friend detail::TcpConnectionImpl;
   friend detail::TcpListenerImpl;
+  friend detail::UdpSocketImpl;
   friend IpResolver;
   friend Timer;
 

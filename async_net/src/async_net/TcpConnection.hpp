@@ -64,6 +64,7 @@ class TcpConnection {
 
   uint64_t total_bytes_sent() const;
   uint64_t total_bytes_received() const;
+  SocketAddress local_address() const;
   SocketAddress peer_address() const;
   State state() const;
 

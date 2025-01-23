@@ -2,8 +2,8 @@
 
 #include <base/Panic.hpp>
 #include <base/text/Format.hpp>
-#include <base/text/Helpers.hpp>
 #include <base/text/Split.hpp>
+#include <base/text/Text.hpp>
 
 namespace websocket::http {
 

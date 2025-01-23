@@ -15,4 +15,6 @@ target_sources(async_net PUBLIC
     Timer.hpp
     Status.hpp
     Status.cpp
+    UdpSocket.cpp
+    UdpSocket.hpp
 )

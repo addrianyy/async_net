@@ -512,6 +512,10 @@ uint64_t WebSocketClientImpl::total_bytes_received() const {
   return connection.total_bytes_received();
 }
 
+async_net::SocketAddress WebSocketClientImpl::local_address() const {
+  return connection.local_address();
+}
+
 async_net::SocketAddress WebSocketClientImpl::peer_address() const {
   return connection.peer_address();
 }
