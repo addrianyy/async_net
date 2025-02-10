@@ -25,14 +25,14 @@ class EchoClient : public std::enable_shared_from_this<EchoClient> {
     (void)client.send_text_message(data);
   }
 
-  void on_disconnected() { log_info("{} - disconnected", ip); }
-  void on_error(async_ws::Status status) { log_info("{} - error {}", ip, status.stringify()); }
+  void on_closed(async_ws::Status status) {
+    log_info("{} - closed (error {})", ip, status.stringify());
+  }
 
   void startup(std::shared_ptr<EchoClient> self) {
     log_info("{} - connected", ip);
 
-    client.set_on_disconnected([self] { return self->on_disconnected(); });
-    client.set_on_error([self](async_ws::Status status) { return self->on_error(status); });
+    client.set_on_closed([self](async_ws::Status status) { return self->on_closed(status); });
 
     client.set_on_binary_message_received(
       [self](std::span<const uint8_t> data) { return self->on_binary_message_received(data); });

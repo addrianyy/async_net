@@ -1,9 +1,9 @@
-#include <base/Initialization.hpp>
-#include <base/Platform.hpp>
+#include "Initialization.hpp"
+#include "Platform.hpp"
 
-#include <base/io/Redirection.hpp>
-#include <base/logger/Logger.hpp>
-#include <base/logger/StdoutLogger.hpp>
+#include "io/Redirection.hpp"
+#include "logger/Logger.hpp"
+#include "logger/StdoutLogger.hpp"
 
 #include <cstdio>
 

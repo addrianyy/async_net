@@ -1,5 +1,6 @@
 #pragma once
-#include <base/logger/LogLevel.hpp>
+#include "LogLevel.hpp"
+
 #include <base/text/Format.hpp>
 
 namespace base {

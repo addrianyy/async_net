@@ -12,6 +12,8 @@
 #include <string_view>
 #include <vector>
 
+using namespace base;
+
 namespace {
 std::array<char, 64> constexpr encode_table{
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -81,13 +83,13 @@ std::array<std::uint8_t, 3> decode_quad(char a, char b, char c, char d) {
 }
 }  // namespace
 
-std::string base::Base64::encode(std::span<const uint8_t> input) {
+std::string Base64::encode(std::span<const uint8_t> input) {
   std::string output;
   encode(input, output);
   return output;
 }
 
-std::optional<std::vector<std::uint8_t>> base::Base64::decode(std::string_view input) {
+std::optional<std::vector<std::uint8_t>> Base64::decode(std::string_view input) {
   std::vector<std::uint8_t> output;
   if (decode(input, output)) {
     return output;
@@ -95,7 +97,7 @@ std::optional<std::vector<std::uint8_t>> base::Base64::decode(std::string_view i
   return std::nullopt;
 }
 
-void base::Base64::encode(std::span<const uint8_t> input, std::string& output) {
+void Base64::encode(std::span<const uint8_t> input, std::string& output) {
   output.clear();
 
   auto const size = input.size();
@@ -127,7 +129,7 @@ void base::Base64::encode(std::span<const uint8_t> input, std::string& output) {
   }
 }
 
-bool base::Base64::decode(std::string_view input, std::vector<uint8_t>& output) {
+bool Base64::decode(std::string_view input, std::vector<uint8_t>& output) {
   output.clear();
 
   if (input.empty()) {

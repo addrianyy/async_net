@@ -10,6 +10,11 @@
 
 namespace base {
 
+template <typename T>
+struct VariantIdFor {
+  constexpr static const auto id = T::variant_id;
+};
+
 namespace detail::sum_type {
 
 template <typename T>
@@ -31,13 +36,13 @@ constexpr std::size_t type_max() {
 }
 
 template <typename First, typename... Variants>
-struct VariantIDType {
-  using T = std::remove_cvref_t<decltype(First::variant_id)>;
+struct VariantIdType {
+  using T = std::remove_cvref_t<decltype(VariantIdFor<First>::id)>;
 };
 
 template <bool Constant, typename Fn, typename T, typename... Args>
 constexpr auto visit(auto variant_id, auto* storage_ptr, Fn&& fn) {
-  if (variant_id == T::variant_id) {
+  if (variant_id == VariantIdFor<T>::id) {
     using QualifiedT = std::conditional_t<Constant, const T, T>;
 
     if constexpr (std::is_invocable_v<Fn, QualifiedT&>) {
@@ -66,8 +71,8 @@ constexpr auto visit(auto variant_id, auto* storage_ptr, Fn&& fn) {
 
 template <typename... Variants>
 consteval bool are_variants_unique() {
-  const std::array<typename VariantIDType<Variants...>::T, sizeof...(Variants)> variants{
-    Variants::variant_id...};
+  const std::array<typename VariantIdType<Variants...>::T, sizeof...(Variants)> variants{
+    VariantIdFor<Variants>::id...};
 
   for (size_t i = 0; i < variants.size(); ++i) {
     const auto variant = variants[i];
@@ -87,7 +92,7 @@ consteval bool are_variants_unique() {
 template <typename... Variants>
 class SumType {
  public:
-  using VariantIDType = detail::sum_type::VariantIDType<Variants...>::T;
+  using VariantIdType = detail::sum_type::VariantIdType<Variants...>::T;
 
  private:
   using Storage = std::aligned_storage_t<
@@ -97,7 +102,7 @@ class SumType {
   static_assert(detail::sum_type::are_variants_unique<Variants...>(),
                 "SumType variants are not unique");
 
-  VariantIDType variant_id;
+  VariantIdType variant_id;
   Storage storage;
 
   template <typename T>
@@ -113,14 +118,14 @@ class SumType {
  public:
   constexpr SumType(const SumType& other) {
     other.visit([this]<typename V>(V& value) {
-      variant_id = V::variant_id;
+      variant_id = VariantIdFor<V>::id;
       new (&storage) V(value);
     });
   }
 
   constexpr SumType(SumType&& other) noexcept {
     other.visit([this]<typename V>(V& value) {
-      variant_id = V::variant_id;
+      variant_id = VariantIdFor<V>::id;
       new (&storage) V(std::move(value));
     });
   }
@@ -130,7 +135,7 @@ class SumType {
       destroy();
 
       other.visit([this]<typename V>(V& value) {
-        variant_id = V::variant_id;
+        variant_id = VariantIdFor<V>::id;
         new (&storage) V(value);
       });
     }
@@ -143,7 +148,7 @@ class SumType {
       destroy();
 
       other.visit([this]<typename V>(V& value) {
-        variant_id = V::variant_id;
+        variant_id = VariantIdFor<V>::id;
         new (&storage) V(std::move(value));
       });
     }
@@ -155,7 +160,7 @@ class SumType {
   constexpr SumType(T&& value) {
     check_variant_type<T>();
 
-    variant_id = T::variant_id;
+    variant_id = VariantIdFor<T>::id;
     new (&storage) T(std::forward<T>(value));
   }
 
@@ -165,13 +170,13 @@ class SumType {
 
     destroy();
 
-    variant_id = T::variant_id;
+    variant_id = VariantIdFor<T>::id;
     new (&storage) T(std::forward<T>(value));
   }
 
   ~SumType() { destroy(); }
 
-  VariantIDType id() const { return variant_id; }
+  VariantIdType id() const { return variant_id; }
 
   template <typename Fn>
   constexpr auto visit(Fn&& fn) {
@@ -189,7 +194,7 @@ class SumType {
   T* as() {
     check_variant_type<T>();
 
-    if (variant_id == T::variant_id) {
+    if (variant_id == VariantIdFor<T>::id) {
       return reinterpret_cast<T*>(&storage);
     } else {
       return nullptr;
@@ -200,7 +205,7 @@ class SumType {
   const T* as() const {
     check_variant_type<T>();
 
-    if (variant_id == T::variant_id) {
+    if (variant_id == VariantIdFor<T>::id) {
       return reinterpret_cast<const T*>(&storage);
     } else {
       return nullptr;
@@ -211,6 +216,8 @@ class SumType {
   bool is() const {
     return as<T>() != nullptr;
   }
+
+  bool is(VariantIdType type) const { return variant_id == type; }
 };
 
 }  // namespace base

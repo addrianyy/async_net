@@ -141,25 +141,14 @@ void TcpConnection::shutdown() {
   }
 }
 
-void TcpConnection::set_on_connection_succeeded(std::function<void()> callback) {
+void TcpConnection::set_on_connected(std::function<void(Status)> callback) {
   if (impl_) {
-    detail::update_callback(impl_->context, impl_->on_connection_succeeded, std::move(callback));
+    detail::update_callback(impl_->context, impl_->on_connected, std::move(callback));
   }
 }
-void TcpConnection::set_on_connection_failed(std::function<void(Status)> callback) {
+void TcpConnection::set_on_closed(std::function<void(Status)> callback) {
   if (impl_) {
-    detail::update_callback(impl_->context, impl_->on_connection_failed, std::move(callback));
-  }
-}
-
-void TcpConnection::set_on_disconnected(std::function<void()> callback) {
-  if (impl_) {
-    detail::update_callback(impl_->context, impl_->on_disconnected, std::move(callback));
-  }
-}
-void TcpConnection::set_on_error(std::function<void(Status)> callback) {
-  if (impl_) {
-    detail::update_callback(impl_->context, impl_->on_error, std::move(callback));
+    detail::update_callback(impl_->context, impl_->on_closed, std::move(callback));
   }
 }
 

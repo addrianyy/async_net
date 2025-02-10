@@ -84,13 +84,8 @@ void ChatClient::startup(std::shared_ptr<ChatClient> self) {
   client.set_on_text_message_received(
     [self](std::string_view message) { self->process_message(message); });
 
-  client.set_on_disconnected([self] {
-    log_info("{} - disconnected", self->ip);
-    self->close();
-  });
-
-  client.set_on_error([self](async_ws::Status status) {
-    log_warn("{} - error {}", self->ip, status.stringify());
+  client.set_on_closed([self](async_ws::Status status) {
+    log_info("{} - connection closed (error {})", self->ip, status.stringify());
     self->close();
   });
 }

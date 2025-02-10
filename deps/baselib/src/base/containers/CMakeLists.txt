@@ -1,4 +1,4 @@
-target_sources(baselib PRIVATE
+target_sources(baselib PUBLIC
     IntrusiveLinkedList.cpp
     IntrusiveLinkedList.hpp
     Bitset.cpp

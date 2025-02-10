@@ -1,4 +1,4 @@
-target_sources(baselib PRIVATE
+target_sources(baselib PUBLIC
     Format.cpp
     Format.hpp
     Base64.cpp

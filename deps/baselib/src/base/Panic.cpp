@@ -1,8 +1,8 @@
-#include <base/Panic.hpp>
-#include <base/PanicHook.hpp>
-#include <base/io/Print.hpp>
-#include <base/logger/Logger.hpp>
-#include <base/logger/LoggerImpl.hpp>
+#include "Panic.hpp"
+#include "PanicHook.hpp"
+#include "io/Print.hpp"
+#include "logger/Logger.hpp"
+#include "logger/LoggerImpl.hpp"
 
 #include <atomic>
 #include <cstdlib>
@@ -10,7 +10,7 @@
 #include <thread>
 #include <vector>
 
-namespace base {
+using namespace base;
 
 struct PanicHookEntry {
   uint64_t id;
@@ -23,12 +23,9 @@ struct PanicHooks {
   std::vector<PanicHookEntry> entries;
 };
 static PanicHooks g_panic_hooks;
-
 static std::atomic_bool g_is_panicking = false;
 
-}  // namespace base
-
-base::PanicHookRegistration base::PanicHookRegistration::register_hook(PanicHook hook) {
+PanicHookRegistration PanicHookRegistration::register_hook(PanicHook hook) {
   if (g_is_panicking) {
     return {};
   }
@@ -45,7 +42,7 @@ base::PanicHookRegistration base::PanicHookRegistration::register_hook(PanicHook
   return PanicHookRegistration{id};
 }
 
-void base::PanicHookRegistration::unregister_hook() {
+void PanicHookRegistration::unregister_hook() {
   if (index == invalid_index || g_is_panicking) {
     return;
   }
@@ -63,10 +60,10 @@ bool base::is_panicking() {
   return g_is_panicking.load(std::memory_order_relaxed);
 }
 
-[[noreturn]] void base::detail::panicking::do_fatal_error(const char* file,
-                                                          int line,
-                                                          fmt::string_view fmt,
-                                                          fmt::format_args args) {
+[[noreturn]] void detail::panic::do_fatal_error(const char* file,
+                                                int line,
+                                                fmt::string_view fmt,
+                                                fmt::format_args args) {
   if (g_is_panicking.exchange(true)) {
     while (true) {
       std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -98,10 +95,10 @@ bool base::is_panicking() {
   std::_Exit(EXIT_FAILURE);
 }
 
-[[noreturn]] void base::detail::panicking::do_verify_fail(const char* file,
-                                                          int line,
-                                                          fmt::string_view fmt,
-                                                          fmt::format_args args) {
+[[noreturn]] void detail::panic::do_verify_fail(const char* file,
+                                                int line,
+                                                fmt::string_view fmt,
+                                                fmt::format_args args) {
   const auto message = fmt::vformat(fmt, args);
 
   if (message.empty()) {

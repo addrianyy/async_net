@@ -1,8 +1,10 @@
 #pragma once
+#include "SeedFromSystemRng.hpp"
+#include "detail/FillBytes.hpp"
+
 #include <cstdint>
 #include <limits>
-
-#include "SeedFromSystemRng.hpp"
+#include <span>
 
 namespace base {
 
@@ -39,6 +41,9 @@ class Xorshift {
 
   constexpr static result_type min() { return std::numeric_limits<result_type>::min(); }
   constexpr static result_type max() { return std::numeric_limits<result_type>::max(); }
+
+  void fill_bytes(void* data, size_t size) { detail::fill_bytes_from_rng(*this, data, size); }
+  void fill_bytes(std::span<uint8_t> data) { fill_bytes(data.data(), data.size()); }
 };
 
 }  // namespace base

@@ -7,8 +7,10 @@ add_subdirectory(macro)
 add_subdirectory(io)
 add_subdirectory(text)
 add_subdirectory(logger)
+add_subdirectory(reflection)
+add_subdirectory(json)
 
-target_sources(baselib PRIVATE
+target_sources(baselib PUBLIC
     Panic.cpp
     Panic.hpp
     PanicHook.cpp

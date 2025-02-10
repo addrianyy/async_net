@@ -1,6 +1,6 @@
 #pragma once
-#include <base/macro/AnonymousName.hpp>
-#include <base/macro/ClassTraits.hpp>
+#include "macro/AnonymousName.hpp"
+#include "macro/ClassTraits.hpp"
 
 #include <type_traits>
 #include <utility>

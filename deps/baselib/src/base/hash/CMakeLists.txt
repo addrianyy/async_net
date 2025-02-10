@@ -1,4 +1,4 @@
-target_sources(baselib PRIVATE
+target_sources(baselib PUBLIC
     Fnv.cpp
     Fnv.hpp
     CombineHash.cpp

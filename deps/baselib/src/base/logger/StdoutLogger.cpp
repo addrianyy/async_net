@@ -3,15 +3,17 @@
 #include <base/io/Print.hpp>
 #include <base/io/TerminalColors.hpp>
 
+using namespace base;
+
 #define TIMESTAMP_FORMAT "[{:>10.3f}]"
 
-base::StdoutLogger::StdoutLogger(bool allow_colors) : allow_colors(allow_colors) {}
+StdoutLogger::StdoutLogger(bool allow_colors) : allow_colors(allow_colors) {}
 
-void base::StdoutLogger::log(const char* file,
-                             int line,
-                             LogLevel level,
-                             fmt::string_view fmt,
-                             fmt::format_args args) {
+void StdoutLogger::log(const char* file,
+                       int line,
+                       LogLevel level,
+                       fmt::string_view fmt,
+                       fmt::format_args args) {
   (void)file;
   (void)line;
 
@@ -60,13 +62,13 @@ void base::StdoutLogger::log(const char* file,
   }
 }
 
-void base::StdoutLogger::log_panic(const char* file,
-                                   int line,
-                                   fmt::string_view fmt,
-                                   fmt::format_args args) {
+void StdoutLogger::log_panic(const char* file,
+                             int line,
+                             fmt::string_view fmt,
+                             fmt::format_args args) {
   log(file, line, LogLevel::Error, fmt, args);
 }
 
-bool base::StdoutLogger::supports_color() const {
+bool StdoutLogger::supports_color() const {
   return allow_colors;
 }

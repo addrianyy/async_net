@@ -1,5 +1,6 @@
 #pragma once
-#include <base/logger/LoggerImpl.hpp>
+#include "LoggerImpl.hpp"
+
 #include <base/time/PreciseTime.hpp>
 
 namespace base {

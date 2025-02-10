@@ -150,25 +150,15 @@ void WebSocketClient::shutdown() {
   }
 }
 
-void WebSocketClient::set_on_connection_succeeded(std::function<void()> callback) {
+void WebSocketClient::set_on_connected(std::function<void(Status)> callback) {
   if (impl_) {
-    impl_->set_on_connection_succeeded(std::move(callback));
-  }
-}
-void WebSocketClient::set_on_connection_failed(std::function<void(Status)> callback) {
-  if (impl_) {
-    impl_->set_on_connection_failed(std::move(callback));
+    impl_->set_on_connected(std::move(callback));
   }
 }
 
-void WebSocketClient::set_on_disconnected(std::function<void()> callback) {
+void WebSocketClient::set_on_closed(std::function<void(Status)> callback) {
   if (impl_) {
-    impl_->set_on_disconnected(std::move(callback));
-  }
-}
-void WebSocketClient::set_on_error(std::function<void(Status)> callback) {
-  if (impl_) {
-    impl_->set_on_error(std::move(callback));
+    impl_->set_on_closed(std::move(callback));
   }
 }
 

@@ -139,21 +139,15 @@ void UdpSocket::shutdown() {
   }
 }
 
-void UdpSocket::set_on_binding_succeeded(std::function<void()> callback) {
+void UdpSocket::set_on_bound(std::function<void(Status)> callback) {
   if (impl_) {
-    detail::update_callback(impl_->context, impl_->on_binding_succeeded, std::move(callback));
+    detail::update_callback(impl_->context, impl_->on_bound, std::move(callback));
   }
 }
 
-void UdpSocket::set_on_binding_failed(std::function<void(Status)> callback) {
+void UdpSocket::set_on_closed(std::function<void(Status)> callback) {
   if (impl_) {
-    detail::update_callback(impl_->context, impl_->on_binding_failed, std::move(callback));
-  }
-}
-
-void UdpSocket::set_on_error(std::function<void(Status)> callback) {
-  if (impl_) {
-    detail::update_callback(impl_->context, impl_->on_error, std::move(callback));
+    detail::update_callback(impl_->context, impl_->on_closed, std::move(callback));
   }
 }
 
@@ -170,9 +164,9 @@ void UdpSocket::set_on_data_sent(std::function<void()> callback) {
   }
 }
 
-void UdpSocket::set_on_send_failed(std::function<void(Status)> callback) {
+void UdpSocket::set_on_send_error(std::function<void(Status)> callback) {
   if (impl_) {
-    detail::update_callback(impl_->context, impl_->on_send_failed, std::move(callback));
+    detail::update_callback(impl_->context, impl_->on_send_error, std::move(callback));
   }
 }
 

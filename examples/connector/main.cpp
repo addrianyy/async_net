@@ -13,13 +13,8 @@ int main() {
   async_net::IoContext context;
   async_net::TcpConnection connection{context, "localhost", port};
 
-  connection.set_on_connection_succeeded([&] {
-    log_info("success");
-    connection.shutdown();
-  });
-
-  connection.set_on_connection_failed([&](async_net::Status status) {
-    log_info("failed: {}", status.stringify());
+  connection.set_on_connected([&](async_net::Status status) {
+    log_info("connection status: {}", status.stringify());
     connection.shutdown();
   });
 

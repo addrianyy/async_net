@@ -52,10 +52,8 @@ class WebSocketClientImpl : public std::enable_shared_from_this<WebSocketClientI
   uint64_t pending_pings{};
   uint64_t pending_pongs{};
 
-  std::function<void()> on_connection_succeeded;
-  std::function<void(Status)> on_connection_failed;
-  std::function<void()> on_disconnected;
-  std::function<void(Status)> on_error;
+  std::function<void(Status)> on_connected;
+  std::function<void(Status)> on_closed;
   std::function<void(std::string_view)> on_text_message_received;
   std::function<void(std::span<const uint8_t>)> on_binary_message_received;
   std::function<void()> on_data_sent;
@@ -84,11 +82,8 @@ class WebSocketClientImpl : public std::enable_shared_from_this<WebSocketClientI
   void on_ws_disconnected();
   void on_ws_error(Status status);
 
-  void on_tcp_disconnected();
-  void on_tcp_error(async_net::Status status);
-
-  void on_tcp_connection_succeeded();
-  void on_tcp_connection_failed(async_net::Status status);
+  void on_tcp_connected(async_net::Status status);
+  void on_tcp_closed(async_net::Status status);
 
   void on_tcp_data_sent();
 
@@ -141,11 +136,8 @@ class WebSocketClientImpl : public std::enable_shared_from_this<WebSocketClientI
   void startup(std::shared_ptr<WebSocketClientImpl> self, std::string uri);
   void shutdown(std::shared_ptr<WebSocketClientImpl> self);
 
-  void set_on_connection_succeeded(std::function<void()> callback);
-  void set_on_connection_failed(std::function<void(Status)> callbackt);
-
-  void set_on_disconnected(std::function<void()> callback);
-  void set_on_error(std::function<void(Status)> callback);
+  void set_on_connected(std::function<void(Status)> callback);
+  void set_on_closed(std::function<void(Status)> callback);
 
   void set_on_text_message_received(std::function<void(std::string_view)> callback);
   void set_on_binary_message_received(std::function<void(std::span<const uint8_t>)> callback);

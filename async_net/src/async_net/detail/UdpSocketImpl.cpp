@@ -28,12 +28,11 @@ bool UdpSocketImpl::is_send_buffer_full() const {
 }
 
 void UdpSocketImpl::cleanup() {
-  on_binding_succeeded = nullptr;
-  on_binding_failed = nullptr;
-  on_error = nullptr;
+  on_bound = nullptr;
+  on_closed = nullptr;
   on_data_received = nullptr;
   on_data_sent = nullptr;
-  on_send_failed = nullptr;
+  on_send_error = nullptr;
 }
 
 void UdpSocketImpl::cleanup_before_register() {
@@ -67,8 +66,8 @@ void UdpSocketImpl::enter_bound_state() {
   state = UdpSocket::State::Bound;
   can_send_packets = true;
 
-  if (on_binding_succeeded) {
-    on_binding_succeeded();
+  if (on_bound) {
+    on_bound({});
   }
 }
 
@@ -117,8 +116,8 @@ void UdpSocketImpl::bind_immediate(std::shared_ptr<UdpSocketImpl> self,
 
   state = UdpSocket::State::Error;
 
-  if (on_binding_failed) {
-    on_binding_failed(error_status);
+  if (on_bound) {
+    on_bound(error_status);
   } else {
     log_error("failed to bind to the UDP socket: {}", error_status.stringify());
   }
@@ -149,8 +148,8 @@ void UdpSocketImpl::bind_anonymous_immediate(std::shared_ptr<UdpSocketImpl> self
   } else {
     state = UdpSocket::State::Error;
 
-    if (on_binding_failed) {
-      on_binding_failed(status);
+    if (on_bound) {
+      on_bound(status);
     } else {
       log_error("failed to bind to the UDP socket: {}", status.stringify());
     }
@@ -184,8 +183,8 @@ void UdpSocketImpl::startup(std::shared_ptr<UdpSocketImpl> self,
                         } else {
                           self->state = UdpSocket::State::Error;
 
-                          if (self->on_binding_failed) {
-                            self->on_binding_failed(status);
+                          if (self->on_bound) {
+                            self->on_bound(status);
                           } else {
                             log_error("failed to bind to the UDP socket: {}", status.stringify());
                           }

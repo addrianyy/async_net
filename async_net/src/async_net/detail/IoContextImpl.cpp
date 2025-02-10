@@ -14,6 +14,14 @@
 
 namespace async_net::detail {
 
+static uint64_t round_precise_time_to_ms(base::PreciseTime time) {
+  const auto ms = time.milliseconds();
+  if ((time - base::PreciseTime::from_milliseconds(ms)).is_zero()) {
+    return ms;
+  }
+  return ms + 1;
+}
+
 class ContextEntryRegistration {
  public:
   template <typename T, typename U>
@@ -229,13 +237,13 @@ void IoContextImpl::handle_tcp_connection_events(
     if (connection->state == TcpConnection::State::Connected) {
       if (status.disconnected()) {
         connection->state = TcpConnection::State::Disconnected;
-        if (connection->on_disconnected) {
-          connection->on_disconnected();
+        if (connection->on_closed) {
+          connection->on_closed({});
         }
       } else {
         connection->state = TcpConnection::State::Error;
-        if (connection->on_error) {
-          connection->on_error(status);
+        if (connection->on_closed) {
+          connection->on_closed(status);
         } else {
           log_error("failed to process TCP connection: {}", status.stringify());
         }
@@ -368,8 +376,8 @@ void IoContextImpl::handle_udp_socket_events(const sock::Poller::PollEntry& entr
 
     if (socket->state == UdpSocket::State::Bound) {
       socket->state = UdpSocket::State::Error;
-      if (socket->on_error) {
-        socket->on_error(status);
+      if (socket->on_closed) {
+        socket->on_closed(status);
       } else {
         log_error("failed to process UDP socket: {}", status.stringify());
       }
@@ -437,11 +445,11 @@ void IoContextImpl::handle_udp_socket_events(const sock::Poller::PollEntry& entr
         total_bytes_sent += bytes_sent;
       }
 
-      if (socket->on_send_failed) {
+      if (socket->on_send_error) {
         if (!status) {
-          socket->on_send_failed(status);
+          socket->on_send_error(status);
         } else if (bytes_sent < send_entry.datagram_size) {
-          socket->on_send_failed({
+          socket->on_send_error({
             .error = sock::Error::SizeTooLarge,
           });
         }
@@ -639,15 +647,15 @@ IoContext::RunResult IoContextImpl::run(const IoContext::RunParameters& paramete
   int timeout_ms = -1;
   {
     if (parameters.timeout) {
-      timeout_ms = int(std::min(*parameters.timeout, uint32_t(std::numeric_limits<int>::max())));
+      timeout_ms = int(std::min(round_precise_time_to_ms(*parameters.timeout),
+                                uint64_t(std::numeric_limits<int>::max())));
     }
 
     if (const auto timer_deadline = timer_manager.earliest_deadline()) {
       const auto time_to_deadline = *timer_deadline - now;
-      verify(time_to_deadline > base::PreciseTime::from_milliseconds(0),
-             "earliest timer has already expired");
+      verify(!time_to_deadline.is_zero(), "earliest timer has already expired");
 
-      const auto time_to_deadline_ms = time_to_deadline.milliseconds() + 1;
+      const auto time_to_deadline_ms = round_precise_time_to_ms(time_to_deadline);
       const int time_to_deadline_ms_clamped =
         time_to_deadline_ms > uint64_t(std::numeric_limits<int>::max())
           ? std::numeric_limits<int>::max()

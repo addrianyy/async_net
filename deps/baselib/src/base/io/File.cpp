@@ -1,59 +1,70 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <base/Panic.hpp>
+#include "File.hpp"
+
 #include <base/Platform.hpp>
-#include <base/io/File.hpp>
 
 #include <cstdio>
 
 using namespace base;
 
 template <typename T>
-static T read_file_internal(const std::string& path, const char* mode) {
+static bool read_file_internal(const std::string& path, const char* mode, T& output) {
+  output.clear();
+
   File file(path, mode, File::OpenFlags::NoBuffering);
-  verify(file, "opening file `{}` for reading failed", path);
+  if (!file) {
+    return false;
+  }
 
   file.seek(File::SeekOrigin::End, 0);
   const auto file_size = file.tell();
   file.seek(File::SeekOrigin::Set, 0);
 
-  T buffer;
-  buffer.resize(file_size + 1);
+  output.resize(file_size + 1);
 
-  const auto read_size = file.read(buffer.data(), buffer.size());
-  verify(!file.error(), "reading file failed");
-  verify(read_size <= file_size, "read unexpected amount of data");
+  const auto read_size = file.read(output.data(), output.size());
+  if (file.error() || read_size > file_size) {
+    output.clear();
+    return false;
+  }
 
-  buffer.resize(read_size);
+  output.resize(read_size);
 
-  return buffer;
+  return true;
 }
 
-static void write_file_internal(const std::string& path,
+static bool write_file_internal(const std::string& path,
                                 const char* mode,
                                 const void* buffer,
                                 size_t buffer_size) {
   File file(path, mode, File::OpenFlags::NoBuffering);
-  verify(file, "opening file `{}` for writing failed", path);
+  if (!file) {
+    return false;
+  }
 
   const auto size = file.write(buffer, buffer_size);
-  verify(size == buffer_size, "couldn't write the whole data");
+  if (size != buffer_size) {
+    return false;
+  }
+
+  return true;
 }
 
-std::vector<uint8_t> File::read_binary_file(const std::string& path) {
-  return read_file_internal<std::vector<uint8_t>>(path, "rb");
+bool File::read_binary_file(const std::string& path, std::vector<uint8_t>& output) {
+  return read_file_internal(path, "rb", output);
 }
 
-std::string File::read_text_file(const std::string& path) {
-  return read_file_internal<std::string>(path, "r");
+bool File::read_text_file(const std::string& path, std::string& output) {
+  return read_file_internal(path, "r", output);
 }
 
-void File::write_binary_file(const std::string& path, const void* data, size_t size) {
-  write_file_internal(path, "wb", data, size);
+bool File::write_binary_file(const std::string& path, const void* data, size_t size) {
+  return write_file_internal(path, "wb", data, size);
 }
 
-void File::write_text_file(const std::string& path, std::string_view contents) {
-  write_file_internal(path, "w", contents.data(), contents.size());
+bool File::write_text_file(const std::string& path, std::string_view contents) {
+  return write_file_internal(path, "w", contents.data(), contents.size());
 }
 
 File::File(const std::string& path, const char* mode, OpenFlags flags) {

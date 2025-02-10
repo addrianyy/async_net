@@ -360,16 +360,16 @@ void WebSocketClientImpl::on_ws_disconnected() {
     state_ = WebSocketClient::State::Error;
 
     const Status ws_status{.error = Error::DisconnectedDuringHandshake};
-    if (on_connection_failed) {
-      on_connection_failed(ws_status);
+    if (on_connected) {
+      on_connected(ws_status);
     } else {
       log_error("WebSocket client: disconnected during handshake");
     }
   } else if (state_ == WebSocketClient::State::Connected) {
     state_ = WebSocketClient::State::Disconnected;
 
-    if (on_disconnected) {
-      on_disconnected();
+    if (on_closed) {
+      on_closed({});
     }
   }
 
@@ -382,16 +382,16 @@ void WebSocketClientImpl::on_ws_error(Status status) {
   if (state_ == WebSocketClient::State::Connecting) {
     state_ = WebSocketClient::State::Error;
 
-    if (on_connection_failed) {
-      on_connection_failed(status);
+    if (on_connected) {
+      on_connected(status);
     } else {
       log_error("WebSocket client: error during connecting: {}", status.stringify());
     }
   } else if (state_ == WebSocketClient::State::Connected) {
     state_ = WebSocketClient::State::Error;
 
-    if (on_error) {
-      on_error(status);
+    if (on_closed) {
+      on_closed(status);
     } else {
       log_error("WebSocket client: error: {}", status.stringify());
     }
@@ -400,24 +400,22 @@ void WebSocketClientImpl::on_ws_error(Status status) {
   cleanup();
 }
 
-void WebSocketClientImpl::on_tcp_disconnected() {
-  on_ws_disconnected();
-}
-
-void WebSocketClientImpl::on_tcp_error(async_net::Status status) {
-  on_ws_error({.error = Error::NetworkError, .net_status = status});
-}
-
-void WebSocketClientImpl::on_tcp_connection_succeeded() {
-  if (state_ == WebSocketClient::State::Connecting && connector) {
-    if (!connector->send_request(connection)) {
-      on_ws_error({.error = Error::FailedToSendRequest});
+void WebSocketClientImpl::on_tcp_connected(async_net::Status status) {
+  if (state_ == WebSocketClient::State::Connecting) {
+    if (status) {
+      if (!connector || !connector->send_request(connection)) {
+        on_ws_error({.error = Error::FailedToSendRequest});
+      }
+    } else {
+      on_ws_error({.error = Error::NetworkError, .net_status = status});
     }
   }
 }
 
-void WebSocketClientImpl::on_tcp_connection_failed(async_net::Status status) {
-  if (state_ == WebSocketClient::State::Connecting) {
+void WebSocketClientImpl::on_tcp_closed(async_net::Status status) {
+  if (status) {
+    on_ws_disconnected();
+  } else {
     on_ws_error({.error = Error::NetworkError, .net_status = status});
   }
 }
@@ -438,8 +436,8 @@ void WebSocketClientImpl::on_connector_succeeded(
   connector = nullptr;
   state_ = WebSocketClient::State::Connected;
 
-  if (on_connection_succeeded) {
-    on_connection_succeeded();
+  if (on_connected) {
+    on_connected({});
   }
 }
 
@@ -457,10 +455,8 @@ void WebSocketClientImpl::cleanup_immediate() {
   connection.shutdown();
   connector = nullptr;
 
-  on_connection_succeeded = nullptr;
-  on_connection_failed = nullptr;
-  on_disconnected = nullptr;
-  on_error = nullptr;
+  on_connected = nullptr;
+  on_closed = nullptr;
   on_text_message_received = nullptr;
   on_binary_message_received = nullptr;
   on_data_sent = nullptr;
@@ -609,10 +605,11 @@ void WebSocketClientImpl::send_ping() {
 void WebSocketClientImpl::startup(std::shared_ptr<WebSocketClientImpl> self) {
   state_ = WebSocketClient::State::Connected;
 
+  connection.set_on_closed(
+    [self](async_net::Status status) { return self->on_tcp_closed(status); });
+
   connection.set_on_data_received(
     [self](std::span<const uint8_t> data) { return self->on_data_received(data); });
-  connection.set_on_disconnected([self]() { return self->on_tcp_disconnected(); });
-  connection.set_on_error([self](async_net::Status status) { return self->on_tcp_error(status); });
 }
 
 void WebSocketClientImpl::startup(std::shared_ptr<WebSocketClientImpl> self, std::string uri) {
@@ -632,14 +629,13 @@ void WebSocketClientImpl::startup(std::shared_ptr<WebSocketClientImpl> self, std
 
   connector = std::make_unique<WebSocketConnectorImpl>(std::move(timeout), std::move(uri));
 
-  connection.set_on_connection_succeeded([self]() { return self->on_tcp_connection_succeeded(); });
-  connection.set_on_connection_failed(
-    [self](async_net::Status status) { return self->on_tcp_connection_failed(status); });
+  connection.set_on_connected(
+    [self](async_net::Status status) { return self->on_tcp_connected(status); });
+  connection.set_on_closed(
+    [self](async_net::Status status) { return self->on_tcp_closed(status); });
 
   connection.set_on_data_received(
     [self](std::span<const uint8_t> data) { return self->on_data_received(data); });
-  connection.set_on_disconnected([self]() { return self->on_tcp_disconnected(); });
-  connection.set_on_error([self](async_net::Status status) { return self->on_tcp_error(status); });
 }
 
 void WebSocketClientImpl::shutdown(std::shared_ptr<WebSocketClientImpl> self) {
@@ -658,18 +654,12 @@ void WebSocketClientImpl::shutdown(std::shared_ptr<WebSocketClientImpl> self) {
   }
 }
 
-void WebSocketClientImpl::set_on_connection_succeeded(std::function<void()> callback) {
-  detail::update_callback(context, on_connection_succeeded, std::move(callback));
-}
-void WebSocketClientImpl::set_on_connection_failed(std::function<void(Status)> callback) {
-  detail::update_callback(context, on_connection_failed, std::move(callback));
+void WebSocketClientImpl::set_on_connected(std::function<void(Status)> callback) {
+  detail::update_callback(context, on_connected, std::move(callback));
 }
 
-void WebSocketClientImpl::set_on_disconnected(std::function<void()> callback) {
-  detail::update_callback(context, on_disconnected, std::move(callback));
-}
-void WebSocketClientImpl::set_on_error(std::function<void(Status)> callback) {
-  detail::update_callback(context, on_error, std::move(callback));
+void WebSocketClientImpl::set_on_closed(std::function<void(Status)> callback) {
+  detail::update_callback(context, on_closed, std::move(callback));
 }
 
 void WebSocketClientImpl::set_on_text_message_received(

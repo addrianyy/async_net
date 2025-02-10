@@ -68,9 +68,8 @@ bool WebSocketAcceptingClientImpl::handle_handshake_request(
     }
 
     // Clear the callbacks.
-    connection.set_on_disconnected(nullptr);
-    connection.set_on_error(nullptr);
     connection.set_on_data_received(nullptr);
+    connection.set_on_closed(nullptr);
 
     WebSocketClient client{std::move(connection), masking_settings};
     serverS->on_client_connected(request.uri, std::move(client));
@@ -128,16 +127,9 @@ void WebSocketAcceptingClientImpl::startup(std::shared_ptr<WebSocketAcceptingCli
   connection.set_on_data_received(
     [self](std::span<const uint8_t> data) { return self->on_data_received(data); });
 
-  connection.set_on_disconnected([selfW]() {
+  connection.set_on_closed([selfW](async_net::Status status) {
     if (auto selfS = selfW.lock()) {
-      log_warn("accepting WebSocket client: disconnected");
-      selfS->timeout.reset();
-    }
-  });
-
-  connection.set_on_error([selfW](async_net::Status status) {
-    if (auto selfS = selfW.lock()) {
-      log_warn("accepting WebSocket client: error {}", status.stringify());
+      log_warn("accepting WebSocket client: connection closed (error: {})", status.stringify());
       selfS->timeout.reset();
     }
   });

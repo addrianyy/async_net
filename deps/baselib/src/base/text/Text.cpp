@@ -2,9 +2,9 @@
 
 #include <cctype>
 
-namespace base::text {
+using namespace base;
 
-std::string to_lowercase(std::string_view s) {
+std::string text::to_lowercase(std::string_view s) {
   std::string result;
   result.reserve(s.size());
 
@@ -20,7 +20,7 @@ std::string to_lowercase(std::string_view s) {
   return result;
 }
 
-std::string to_uppercase(std::string_view s) {
+std::string text::to_uppercase(std::string_view s) {
   std::string result;
   result.reserve(s.size());
 
@@ -36,7 +36,7 @@ std::string to_uppercase(std::string_view s) {
   return result;
 }
 
-bool equals_case_insensitive(std::string_view a, std::string_view b) {
+bool text::equals_case_insensitive(std::string_view a, std::string_view b) {
   if (a.size() != b.size()) {
     return false;
   }
@@ -50,22 +50,20 @@ bool equals_case_insensitive(std::string_view a, std::string_view b) {
   return true;
 }
 
-std::string_view lstrip(std::string_view s) {
+std::string_view text::lstrip(std::string_view s) {
   while (!s.empty() && std::isspace(s.front())) {
     s = s.substr(1);
   }
   return s;
 }
 
-std::string_view rstrip(std::string_view s) {
+std::string_view text::rstrip(std::string_view s) {
   while (!s.empty() && std::isspace(s.back())) {
     s = s.substr(0, s.size() - 1);
   }
   return s;
 }
 
-std::string_view strip(std::string_view s) {
+std::string_view text::strip(std::string_view s) {
   return lstrip(rstrip(s));
 }
-
-}  // namespace base::text

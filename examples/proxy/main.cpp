@@ -68,12 +68,16 @@ class ProxyClient : public std::enable_shared_from_this<ProxyClient> {
 
     {
       auto self = shared_from_this();
-      tcp_peer.set_on_connection_succeeded([self] { self->on_tcp_connection_succeeded(); });
-      tcp_peer.set_on_connection_failed(
-        [self](async_net::Status status) { self->on_tcp_connection_failed(status); });
+      
+      tcp_peer.set_on_connected([self](async_net::Status status) {
+        if (status) {
+          self->on_tcp_connection_succeeded();
+        } else {
+          self->on_tcp_connection_failed(status);
+        }
+      });
 
-      tcp_peer.set_on_disconnected([self] { self->on_tcp_disconnected(); });
-      tcp_peer.set_on_error([self](async_net::Status status) { self->on_tcp_error(status); });
+      tcp_peer.set_on_closed([self](async_net::Status status) { self->on_tcp_closed(status); });
 
       tcp_peer.set_on_data_received(
         [self](std::span<const uint8_t> data) { return self->on_tcp_data_recieved(data); });
@@ -102,13 +106,8 @@ class ProxyClient : public std::enable_shared_from_this<ProxyClient> {
     }
   }
 
-  void on_tcp_disconnected() {
-    log_info("{} - TCP peer disconnected", ip);
-    close();
-  }
-
-  void on_tcp_error(async_net::Status status) {
-    log_warn("{} - TCP peer error {}", ip, status.stringify());
+  void on_tcp_closed(async_net::Status status) {
+    log_warn("{} - TCP peer connection closed (error {})", ip, status.stringify());
     close();
   }
 
@@ -163,12 +162,8 @@ class ProxyClient : public std::enable_shared_from_this<ProxyClient> {
       : client(std::move(client)), ip(this->client.peer_address().stringify()) {}
 
   void startup(std::shared_ptr<ProxyClient> self) {
-    client.set_on_disconnected([self] {
-      log_info("{} - disconnected", self->ip);
-      self->close();
-    });
-    client.set_on_error([self](async_ws::Status status) {
-      log_warn("{} - error {}", self->ip, status.stringify());
+    client.set_on_closed([self](async_ws::Status status) {
+      log_info("{} - connection closed (error {})", self->ip, status.stringify());
       self->close();
     });
 

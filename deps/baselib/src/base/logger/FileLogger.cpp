@@ -3,11 +3,13 @@
 #include <base/Panic.hpp>
 #include <base/io/Print.hpp>
 
-bool base::FileLogger::try_log(const char* file,
-                               int line,
-                               LogLevel level,
-                               fmt::string_view fmt,
-                               fmt::format_args args) {
+using namespace base;
+
+bool FileLogger::try_log(const char* file,
+                         int line,
+                         LogLevel level,
+                         fmt::string_view fmt,
+                         fmt::format_args args) {
   (void)file;
   (void)line;
 
@@ -46,35 +48,35 @@ bool base::FileLogger::try_log(const char* file,
   return written_everything;
 }
 
-base::FileLogger::FileLogger(const std::string& output_file_path)
-    : FileLogger(File{output_file_path, "w", base::File::OpenFlags::NoBuffering}) {}
+FileLogger::FileLogger(const std::string& output_file_path)
+    : FileLogger(File{output_file_path, "w", File::OpenFlags::NoBuffering}) {}
 
-base::FileLogger::FileLogger(File output_file) : output_file(std::move(output_file)) {
+FileLogger::FileLogger(File output_file) : output_file(std::move(output_file)) {
   if (!this->output_file) {
     fatal_error("FileLogger failed to open the output file");
   }
 }
 
-void base::FileLogger::log(const char* file,
-                           int line,
-                           LogLevel level,
-                           fmt::string_view fmt,
-                           fmt::format_args args) {
+void FileLogger::log(const char* file,
+                     int line,
+                     LogLevel level,
+                     fmt::string_view fmt,
+                     fmt::format_args args) {
   if (!try_log(file, line, level, fmt, args)) {
     fatal_error("FileLogger failed to write to the output file");
   }
 }
 
-void base::FileLogger::log_panic(const char* file,
-                                 int line,
-                                 fmt::string_view fmt,
-                                 fmt::format_args args) {
+void FileLogger::log_panic(const char* file,
+                           int line,
+                           fmt::string_view fmt,
+                           fmt::format_args args) {
   if (!try_log(file, line, LogLevel::Error, fmt, args)) {
     base::println("FileLogger is not healthy during panic");
     base::println("panic: {}", fmt::vformat(fmt, args));
   }
 }
 
-bool base::FileLogger::supports_color() const {
+bool FileLogger::supports_color() const {
   return false;
 }

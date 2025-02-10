@@ -1,7 +1,7 @@
 #pragma once
-#include <base/text/Format.hpp>
+#include "text/Format.hpp"
 
-namespace base::detail::panicking {
+namespace base::detail::panic {
 
 [[noreturn]] void do_fatal_error(const char* file,
                                  int line,
@@ -31,16 +31,16 @@ inline void verify_fmt(const char* file,
   }
 }
 
-}  // namespace base::detail::panicking
+}  // namespace base::detail::panic
 
 namespace base {
 bool is_panicking();
 }
 
 #define fatal_error(format, ...) \
-  ::base::detail::panicking::fatal_error_fmt(__FILE__, __LINE__, (format), ##__VA_ARGS__)
+  ::base::detail::panic::fatal_error_fmt(__FILE__, __LINE__, (format), ##__VA_ARGS__)
 
 #define verify(value, format, ...) \
-  ::base::detail::panicking::verify_fmt(__FILE__, __LINE__, !!(value), (format), ##__VA_ARGS__)
+  ::base::detail::panic::verify_fmt(__FILE__, __LINE__, !!(value), (format), ##__VA_ARGS__)
 
 #define unreachable() fatal_error("entered unreachable code")

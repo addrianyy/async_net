@@ -24,11 +24,11 @@ class File {
     End,
   };
 
-  static std::string read_text_file(const std::string& path);
-  static std::vector<uint8_t> read_binary_file(const std::string& path);
+  static bool read_text_file(const std::string& path, std::string& output);
+  static bool read_binary_file(const std::string& path, std::vector<uint8_t>& output);
 
-  static void write_text_file(const std::string& path, std::string_view contents);
-  static void write_binary_file(const std::string& path, const void* data, size_t size);
+  static bool write_text_file(const std::string& path, std::string_view contents);
+  static bool write_binary_file(const std::string& path, const void* data, size_t size);
 
   File() = default;
   File(const std::string& path, const char* mode, OpenFlags flags = OpenFlags::None);

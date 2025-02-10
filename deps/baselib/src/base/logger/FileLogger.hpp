@@ -1,6 +1,7 @@
 #pragma once
+#include "LoggerImpl.hpp"
+
 #include <base/io/File.hpp>
-#include <base/logger/LoggerImpl.hpp>
 #include <base/time/PreciseTime.hpp>
 
 #include <mutex>

@@ -17,17 +17,17 @@ class PreciseTime {
   static PreciseTime now();
 
   static constexpr PreciseTime from_nanoseconds(uint64_t ns) { return PreciseTime{ns}; }
-  static constexpr PreciseTime from_microseconds(uint64_t us) { return PreciseTime{us * 1'000}; }
+  static constexpr PreciseTime from_microseconds(uint64_t us) { return PreciseTime{us * 1'000u}; }
   static constexpr PreciseTime from_milliseconds(uint64_t ms) {
-    return PreciseTime{ms * 1'000'000};
+    return PreciseTime{ms * 1'000'000u};
   }
   static constexpr PreciseTime from_seconds(double s) {
     return PreciseTime{uint64_t(s * 1'000'000'000.0)};
   }
 
   constexpr uint64_t nanoseconds() const { return nano; }
-  constexpr uint64_t microseconds() const { return nano / 1'000; }
-  constexpr uint64_t milliseconds() const { return nano / 1'000'000; }
+  constexpr uint64_t microseconds() const { return nano / 1'000u; }
+  constexpr uint64_t milliseconds() const { return nano / 1'000'000u; }
   constexpr double seconds() const { return double(nano) / 1'000'000'000.0; }
 
   constexpr PreciseTime operator+(const PreciseTime& other) const {
@@ -59,6 +59,8 @@ class PreciseTime {
     return *this;
   }
 
+  constexpr bool is_zero() const { return nano == 0; }
+
   constexpr auto operator<=>(const PreciseTime& other) const = default;
 };
 
@@ -72,18 +74,19 @@ struct fmt::formatter<base::PreciseTime> {
 
   auto format(const base::PreciseTime& v, format_context& ctx) const -> format_context::iterator {
     auto time_value = v.nanoseconds();
-    if (time_value < 1000) {
+    if (time_value < 1000u) {
       return format_to(ctx.out(), "{}ns", time_value);
     } else {
       static constexpr std::array<std::string_view, 3> suffixes{"us", "ms", "s"};
 
       size_t i = 0;
-      while (time_value >= 1'000'000 && i < (suffixes.size() - 1)) {
-        time_value /= 1000;
+      while (time_value >= 1'000'000u && i < (suffixes.size() - 1)) {
+        time_value /= 1000u;
         i++;
       }
 
-      return format_to(ctx.out(), "{}.{:03}{}", time_value / 1000, time_value % 1000, suffixes[i]);
+      return format_to(ctx.out(), "{}.{:03}{}", time_value / 1000u, time_value % 1000u,
+                       suffixes[i]);
     }
   }
 };

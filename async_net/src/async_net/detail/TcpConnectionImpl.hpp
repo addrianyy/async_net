@@ -68,10 +68,8 @@ class TcpConnectionImpl {
   uint64_t total_bytes_received{};
   uint64_t total_bytes_sent{};
 
-  std::function<void()> on_connection_succeeded;
-  std::function<void(Status)> on_connection_failed;
-  std::function<void()> on_disconnected;
-  std::function<void(Status)> on_error;
+  std::function<void(Status)> on_connected;
+  std::function<void(Status)> on_closed;
   std::function<size_t(std::span<const uint8_t>)> on_data_received;
   std::function<void()> on_data_sent;
 

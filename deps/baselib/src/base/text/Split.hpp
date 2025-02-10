@@ -1,7 +1,7 @@
 #pragma once
+#include <array>
 #include <cstddef>
 #include <string>
-#include <array>
 #include <string_view>
 
 namespace base::text {

@@ -5,8 +5,6 @@
 
 namespace base {
 
-using memory_buffer = fmt::memory_buffer;
-
 template <typename... Args>
 using format_string = ::fmt::format_string<Args...>;
 

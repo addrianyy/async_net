@@ -13,9 +13,13 @@ int main() {
   async_net::IoContext context;
   async_net::UdpSocket socket{context, port};
 
-  socket.set_on_binding_succeeded([] { log_info("binding succeeded"); });
-  socket.set_on_binding_failed(
-    [](async_net::Status status) { log_info("binding failed: {}", status.stringify()); });
+  socket.set_on_bound([](async_net::Status status) {
+    if (status) {
+      log_info("binding succeeded");
+    } else {
+      log_info("binding failed: {}", status.stringify());
+    }
+  });
 
   socket.set_on_data_received(
     [&socket](const async_net::SocketAddress& peer, std::span<const uint8_t> data) {

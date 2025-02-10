@@ -4,6 +4,7 @@
 #include <optional>
 
 #include <base/macro/ClassTraits.hpp>
+#include <base/time/PreciseTime.hpp>
 
 namespace async_net {
 
@@ -37,7 +38,7 @@ class IoContext {
   };
 
   struct RunParameters {
-    std::optional<uint32_t> timeout{};
+    std::optional<base::PreciseTime> timeout{};
     bool stop_when_no_work{};
   };
 

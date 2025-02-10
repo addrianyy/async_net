@@ -1,4 +1,4 @@
-target_sources(baselib PRIVATE
+target_sources(baselib PUBLIC
     Stopwatch.hpp
     Stopwatch.cpp
     PreciseTime.hpp

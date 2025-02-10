@@ -32,10 +32,8 @@ size_t TcpConnectionImpl::send_buffer_remaining_size() const {
 }
 
 void TcpConnectionImpl::cleanup() {
-  on_connection_succeeded = nullptr;
-  on_connection_failed = nullptr;
-  on_disconnected = nullptr;
-  on_error = nullptr;
+  on_connected = nullptr;
+  on_closed = nullptr;
   on_data_received = nullptr;
   on_data_sent = nullptr;
 }
@@ -76,8 +74,8 @@ void TcpConnectionImpl::enter_connected_state(bool invoke_callbacks) {
   state = TcpConnection::State::Connected;
   can_send_packets = true;
 
-  if (invoke_callbacks && on_connection_succeeded) {
-    on_connection_succeeded();
+  if (invoke_callbacks && on_connected) {
+    on_connected({});
   }
 }
 
@@ -141,8 +139,8 @@ bool TcpConnectionImpl::attempt_next_address(const std::shared_ptr<TcpConnection
   state = TcpConnection::State::Error;
   connecting_state = {};
 
-  if (on_connection_failed) {
-    on_connection_failed(status);
+  if (on_connected) {
+    on_connected(status);
   } else {
     log_error("failed to connect to the TCP socket: {}", status.stringify());
   }
@@ -194,8 +192,8 @@ void TcpConnectionImpl::connect_immediate(std::shared_ptr<TcpConnectionImpl> sel
 
   state = TcpConnection::State::Error;
 
-  if (on_connection_failed) {
-    on_connection_failed(error_status);
+  if (on_connected) {
+    on_connected(error_status);
   } else {
     log_error("failed to connect to the TCP socket: {}", error_status.stringify());
   }
@@ -241,8 +239,8 @@ void TcpConnectionImpl::startup(std::shared_ptr<TcpConnectionImpl> self,
       } else {
         self->state = TcpConnection::State::Error;
 
-        if (self->on_error) {
-          self->on_error(status);
+        if (self->on_connected) {
+          self->on_connected(status);
         } else {
           log_error("failed to connect to the TCP socket: {}", status.stringify());
         }

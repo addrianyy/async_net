@@ -113,11 +113,8 @@ class TcpConnection {
 
   void shutdown();
 
-  void set_on_connection_succeeded(std::function<void()> callback);
-  void set_on_connection_failed(std::function<void(Status)> callback);
-
-  void set_on_disconnected(std::function<void()> callback);
-  void set_on_error(std::function<void(Status)> callback);
+  void set_on_connected(std::function<void(Status)> callback);
+  void set_on_closed(std::function<void(Status)> callback);
 
   void set_on_data_received(std::function<size_t(std::span<const uint8_t>)> callback);
   void set_on_data_sent(std::function<void()> callback);

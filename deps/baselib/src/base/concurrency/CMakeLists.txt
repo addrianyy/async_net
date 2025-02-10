@@ -1,4 +1,4 @@
-target_sources(baselib PRIVATE
+target_sources(baselib PUBLIC
     ForkJoinPool.cpp
     ForkJoinPool.hpp
     JoinableThreads.hpp
