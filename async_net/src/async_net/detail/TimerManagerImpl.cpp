@@ -4,8 +4,9 @@
 
 namespace async_net::detail {
 
-TimerManagerImpl::TimerKey TimerManagerImpl::register_timer(base::PreciseTime deadline,
-                                                            std::function<void()> callback) {
+TimerManagerImpl::TimerKey TimerManagerImpl::register_timer(
+  base::PreciseTime deadline,
+  std::move_only_function<void()> callback) {
   const auto id = next_timer_id++;
 
   TimerEntry entry{
@@ -19,13 +20,13 @@ TimerManagerImpl::TimerKey TimerManagerImpl::register_timer(base::PreciseTime de
   return {id, deadline};
 }
 
-std::function<void()> TimerManagerImpl::unregister_timer(const TimerKey& key) {
+std::move_only_function<void()> TimerManagerImpl::unregister_timer(const TimerKey& key) {
   TimerEntry entry{
     .id = key.id,
     .deadline = key.deadline,
   };
 
-  std::function<void()> callback;
+  std::move_only_function<void()> callback;
 
   if (auto it = timers.find(entry); it != timers.end()) {
     callback = std::move(it->callback);

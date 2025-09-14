@@ -33,12 +33,12 @@ class IoContextImpl {
   IpResolverImpl ip_resolver;
   TimerManagerImpl timer_manager;
 
-  std::vector<std::function<void()>> deferred_work_write;
-  std::vector<std::function<void()>> deferred_work_read;
+  std::vector<std::move_only_function<void()>> deferred_work_write;
+  std::vector<std::move_only_function<void()>> deferred_work_read;
 
   std::mutex deferred_work_atomic_mutex;
-  std::vector<std::function<void()>> deferred_work_atomic_write;
-  std::vector<std::function<void()>> deferred_work_atomic_read;
+  std::vector<std::move_only_function<void()>> deferred_work_atomic_write;
+  std::vector<std::move_only_function<void()>> deferred_work_atomic_read;
 
   enum class PendingConnectionStatus {
     StillWaiting,
@@ -87,14 +87,14 @@ class IoContextImpl {
   void register_udp_socket(std::shared_ptr<UdpSocketImpl> socket);
   void unregister_udp_socket(UdpSocketImpl* socket);
 
-  void queue_deferred_work(std::function<void()> callback);
-  void queue_deferred_work_atomic(std::function<void()> callback);
+  void queue_deferred_work(std::move_only_function<void()> callback);
+  void queue_deferred_work_atomic(std::move_only_function<void()> callback);
 
   void queue_ip_resolve(std::string hostname,
-                        std::function<void(Status, std::vector<IpAddress>)> callback);
+                        std::move_only_function<void(Status, std::vector<IpAddress>)> callback);
 
   TimerManagerImpl::TimerKey register_timer(base::PreciseTime deadline,
-                                            std::function<void()> callback);
+                                            std::move_only_function<void()> callback);
   void unregister_timer(const TimerManagerImpl::TimerKey& key);
 
   [[nodiscard]] IoContext::RunResult run(const IoContext::RunParameters& parameters);

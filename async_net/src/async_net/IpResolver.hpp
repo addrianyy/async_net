@@ -14,7 +14,7 @@ class IpResolver {
  public:
   static void resolve(IoContext& context,
                       std::string hostname,
-                      std::function<void(sock::Status, std::vector<IpAddress>)> callback);
+                      std::move_only_function<void(sock::Status, std::vector<IpAddress>)> callback);
 };
 
 }  // namespace async_net

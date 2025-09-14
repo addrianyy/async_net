@@ -139,32 +139,32 @@ void UdpSocket::shutdown() {
   }
 }
 
-void UdpSocket::set_on_bound(std::function<void(Status)> callback) {
+void UdpSocket::set_on_bound(std::move_only_function<void(Status)> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_bound, std::move(callback));
   }
 }
 
-void UdpSocket::set_on_closed(std::function<void(Status)> callback) {
+void UdpSocket::set_on_closed(std::move_only_function<void(Status)> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_closed, std::move(callback));
   }
 }
 
 void UdpSocket::set_on_data_received(
-  std::function<void(const SocketAddress&, std::span<const uint8_t>)> callback) {
+  std::move_only_function<void(const SocketAddress&, std::span<const uint8_t>)> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_data_received, std::move(callback));
   }
 }
 
-void UdpSocket::set_on_data_sent(std::function<void()> callback) {
+void UdpSocket::set_on_data_sent(std::move_only_function<void()> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_data_sent, std::move(callback));
   }
 }
 
-void UdpSocket::set_on_send_error(std::function<void(Status)> callback) {
+void UdpSocket::set_on_send_error(std::move_only_function<void(Status)> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_send_error, std::move(callback));
   }

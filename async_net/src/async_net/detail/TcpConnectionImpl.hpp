@@ -68,10 +68,10 @@ class TcpConnectionImpl {
   uint64_t total_bytes_received{};
   uint64_t total_bytes_sent{};
 
-  std::function<void(Status)> on_connected;
-  std::function<void(Status)> on_closed;
-  std::function<size_t(std::span<const uint8_t>)> on_data_received;
-  std::function<void()> on_data_sent;
+  std::move_only_function<void(Status)> on_connected;
+  std::move_only_function<void(Status)> on_closed;
+  std::move_only_function<size_t(std::span<const uint8_t>)> on_data_received;
+  std::move_only_function<void()> on_data_sent;
 
   base::BinaryBuffer& acquire_send_buffer();
   size_t send_buffer_size() const;

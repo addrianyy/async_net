@@ -141,23 +141,24 @@ void TcpConnection::shutdown() {
   }
 }
 
-void TcpConnection::set_on_connected(std::function<void(Status)> callback) {
+void TcpConnection::set_on_connected(std::move_only_function<void(Status)> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_connected, std::move(callback));
   }
 }
-void TcpConnection::set_on_closed(std::function<void(Status)> callback) {
+void TcpConnection::set_on_closed(std::move_only_function<void(Status)> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_closed, std::move(callback));
   }
 }
 
-void TcpConnection::set_on_data_received(std::function<size_t(std::span<const uint8_t>)> callback) {
+void TcpConnection::set_on_data_received(
+  std::move_only_function<size_t(std::span<const uint8_t>)> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_data_received, std::move(callback));
   }
 }
-void TcpConnection::set_on_data_sent(std::function<void()> callback) {
+void TcpConnection::set_on_data_sent(std::move_only_function<void()> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_data_sent, std::move(callback));
   }

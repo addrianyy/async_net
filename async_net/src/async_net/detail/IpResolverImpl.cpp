@@ -41,8 +41,9 @@ void IpResolverImpl::exit() {
   }
 }
 
-void IpResolverImpl::resolve(std::string hostname,
-                             std::function<void(Status, std::vector<IpAddress>)> callback) {
+void IpResolverImpl::resolve(
+  std::string hostname,
+  std::move_only_function<void(Status, std::vector<IpAddress>)> callback) {
   worker_request_queue.push_back_one({
     .hostname = std::move(hostname),
     .callback = std::move(callback),

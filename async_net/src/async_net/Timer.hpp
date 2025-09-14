@@ -27,17 +27,17 @@ class Timer {
 
   static Timer invoke_at_deadline(IoContext& context,
                                   base::PreciseTime deadline,
-                                  std::function<void()> callback);
+                                  std::move_only_function<void()> callback);
   static Timer invoke_after(IoContext& context,
                             base::PreciseTime timeout,
-                            std::function<void()> callback);
+                            std::move_only_function<void()> callback);
 
   static void invoke_at_deadline_detached(IoContext& context,
                                           base::PreciseTime deadline,
-                                          std::function<void()> callback);
+                                          std::move_only_function<void()> callback);
   static void invoke_after_detached(IoContext& context,
                                     base::PreciseTime timeout,
-                                    std::function<void()> callback);
+                                    std::move_only_function<void()> callback);
 
   Timer(Timer&& other) noexcept;
   Timer& operator=(Timer&& other) noexcept;
@@ -45,7 +45,7 @@ class Timer {
   IoContext* io_context() { return context_; }
   const IoContext* io_context() const { return context_; }
 
-  operator bool() const { return context_ && id_ != invalid_id; }
+  explicit operator bool() const { return context_ && id_ != invalid_id; }
 
   void reset();
 };

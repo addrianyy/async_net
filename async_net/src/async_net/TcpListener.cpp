@@ -75,19 +75,19 @@ void TcpListener::shutdown() {
   }
 }
 
-void TcpListener::set_on_listening(std::function<void()> callback) {
+void TcpListener::set_on_listening(std::move_only_function<void()> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_listening, std::move(callback));
   }
 }
 
-void TcpListener::set_on_error(std::function<void(Status)> callback) {
+void TcpListener::set_on_error(std::move_only_function<void(Status)> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_error, std::move(callback));
   }
 }
 
-void TcpListener::set_on_accept(std::function<void(Status, TcpConnection)> callback) {
+void TcpListener::set_on_accept(std::move_only_function<void(Status, TcpConnection)> callback) {
   if (impl_) {
     detail::update_callback(impl_->context, impl_->on_accept, std::move(callback));
   }

@@ -39,26 +39,26 @@ Timer::~Timer() {
 
 Timer Timer::invoke_at_deadline(IoContext& context,
                                 base::PreciseTime deadline,
-                                std::function<void()> callback) {
+                                std::move_only_function<void()> callback) {
   const auto key = context.impl_->register_timer(deadline, std::move(callback));
   return Timer{context, key.id, key.deadline};
 }
 
 Timer Timer::invoke_after(IoContext& context,
                           base::PreciseTime timeout,
-                          std::function<void()> callback) {
+                          std::move_only_function<void()> callback) {
   return invoke_at_deadline(context, base::PreciseTime::now() + timeout, std::move(callback));
 }
 
 void Timer::invoke_at_deadline_detached(IoContext& context,
                                         base::PreciseTime deadline,
-                                        std::function<void()> callback) {
+                                        std::move_only_function<void()> callback) {
   context.impl_->register_timer(deadline, std::move(callback));
 }
 
 void Timer::invoke_after_detached(IoContext& context,
                                   base::PreciseTime timeout,
-                                  std::function<void()> callback) {
+                                  std::move_only_function<void()> callback) {
   invoke_at_deadline_detached(context, base::PreciseTime::now() + timeout, std::move(callback));
 }
 

@@ -16,12 +16,12 @@ class IoContextImpl;
 class IpResolverImpl {
   struct Request {
     std::string hostname{};
-    std::function<void(Status, std::vector<IpAddress>)> callback;
+    std::move_only_function<void(Status, std::vector<IpAddress>)> callback;
   };
   struct Response {
     Status status{};
     std::vector<IpAddress> resolved_ips{};
-    std::function<void(Status, std::vector<IpAddress>)> callback;
+    std::move_only_function<void(Status, std::vector<IpAddress>)> callback;
   };
 
   IoContextImpl& io_context;
@@ -43,7 +43,8 @@ class IpResolverImpl {
 
   void exit();
 
-  void resolve(std::string hostname, std::function<void(Status, std::vector<IpAddress>)> callback);
+  void resolve(std::string hostname,
+               std::move_only_function<void(Status, std::vector<IpAddress>)> callback);
   void poll();
   void drain();
 

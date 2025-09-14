@@ -26,10 +26,10 @@ class WebSocketServerImpl {
 
   WebSocketServer::State state_{WebSocketServer::State::Waiting};
 
-  std::function<void()> on_listening;
-  std::function<void(Status)> on_error;
-  std::function<bool(std::string_view, async_net::SocketAddress)> on_connection_request;
-  std::function<void(std::string_view, WebSocketClient)> on_client_connected;
+  std::move_only_function<void()> on_listening;
+  std::move_only_function<void(Status)> on_error;
+  std::move_only_function<bool(std::string_view, async_net::SocketAddress)> on_connection_request;
+  std::move_only_function<void(std::string_view, WebSocketClient)> on_client_connected;
 
   void cleanup_deferred(std::shared_ptr<WebSocketServerImpl> self);
 
@@ -45,11 +45,12 @@ class WebSocketServerImpl {
   void startup(std::shared_ptr<WebSocketServerImpl> self);
   void shutdown(std::shared_ptr<WebSocketServerImpl> self);
 
-  void set_on_listening(std::function<void()> callback);
-  void set_on_error(std::function<void(Status)> callback);
+  void set_on_listening(std::move_only_function<void()> callback);
+  void set_on_error(std::move_only_function<void(Status)> callback);
   void set_on_connection_request(
-    std::function<bool(std::string_view, async_net::SocketAddress)> callback);
-  void set_on_client_connected(std::function<void(std::string_view, WebSocketClient)> callback);
+    std::move_only_function<bool(std::string_view, async_net::SocketAddress)> callback);
+  void set_on_client_connected(
+    std::move_only_function<void(std::string_view, WebSocketClient)> callback);
 };
 
 }  // namespace detail

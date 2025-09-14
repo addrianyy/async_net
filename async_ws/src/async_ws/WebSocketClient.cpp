@@ -150,31 +150,32 @@ void WebSocketClient::shutdown() {
   }
 }
 
-void WebSocketClient::set_on_connected(std::function<void(Status)> callback) {
+void WebSocketClient::set_on_connected(std::move_only_function<void(Status)> callback) {
   if (impl_) {
     impl_->set_on_connected(std::move(callback));
   }
 }
 
-void WebSocketClient::set_on_closed(std::function<void(Status)> callback) {
+void WebSocketClient::set_on_closed(std::move_only_function<void(Status)> callback) {
   if (impl_) {
     impl_->set_on_closed(std::move(callback));
   }
 }
 
-void WebSocketClient::set_on_text_message_received(std::function<void(std::string_view)> callback) {
+void WebSocketClient::set_on_text_message_received(
+  std::move_only_function<void(std::string_view)> callback) {
   if (impl_) {
     impl_->set_on_text_message_received(std::move(callback));
   }
 }
 void WebSocketClient::set_on_binary_message_received(
-  std::function<void(std::span<const uint8_t>)> callback) {
+  std::move_only_function<void(std::span<const uint8_t>)> callback) {
   if (impl_) {
     impl_->set_on_binary_message_received(std::move(callback));
   }
 }
 
-void WebSocketClient::set_on_data_sent(std::function<void()> callback) {
+void WebSocketClient::set_on_data_sent(std::move_only_function<void()> callback) {
   if (impl_) {
     impl_->set_on_data_sent(std::move(callback));
   }

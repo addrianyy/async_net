@@ -15,7 +15,7 @@ class TimerManagerImpl {
   struct TimerEntry {
     uint64_t id{};
     base::PreciseTime deadline{};
-    mutable std::function<void()> callback;
+    mutable std::move_only_function<void()> callback;
 
     bool operator<(const TimerEntry& other) const {
       if (deadline == other.deadline) {
@@ -33,7 +33,7 @@ class TimerManagerImpl {
   std::set<TimerEntry> timers;
   uint64_t next_timer_id{};
 
-  std::vector<std::function<void()>> pending_callbacks;
+  std::vector<std::move_only_function<void()>> pending_callbacks;
 
  public:
   CLASS_NON_COPYABLE_NON_MOVABLE(TimerManagerImpl)
@@ -45,8 +45,8 @@ class TimerManagerImpl {
     base::PreciseTime deadline;
   };
 
-  TimerKey register_timer(base::PreciseTime deadline, std::function<void()> callback);
-  std::function<void()> unregister_timer(const TimerKey& key);
+  TimerKey register_timer(base::PreciseTime deadline, std::move_only_function<void()> callback);
+  std::move_only_function<void()> unregister_timer(const TimerKey& key);
 
   void poll(base::PreciseTime now);
   void drain();

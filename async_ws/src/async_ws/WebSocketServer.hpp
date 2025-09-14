@@ -50,7 +50,7 @@ class WebSocketServer {
   const async_net::IoContext* io_context() const;
 
   bool valid() const { return impl_ != nullptr; }
-  operator bool() const { return valid(); }
+  explicit operator bool() const { return valid(); }
 
   State state() const;
 
@@ -58,11 +58,12 @@ class WebSocketServer {
 
   void shutdown();
 
-  void set_on_listening(std::function<void()> callback);
-  void set_on_error(std::function<void(Status)> callback);
+  void set_on_listening(std::move_only_function<void()> callback);
+  void set_on_error(std::move_only_function<void(Status)> callback);
   void set_on_connection_request(
-    std::function<bool(std::string_view, async_net::SocketAddress)> callback);
-  void set_on_client_connected(std::function<void(std::string_view, WebSocketClient)> callback);
+    std::move_only_function<bool(std::string_view, async_net::SocketAddress)> callback);
+  void set_on_client_connected(
+    std::move_only_function<void(std::string_view, WebSocketClient)> callback);
 };
 
 }  // namespace async_ws

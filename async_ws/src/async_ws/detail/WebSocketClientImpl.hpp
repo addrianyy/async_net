@@ -52,11 +52,11 @@ class WebSocketClientImpl : public std::enable_shared_from_this<WebSocketClientI
   uint64_t pending_pings{};
   uint64_t pending_pongs{};
 
-  std::function<void(Status)> on_connected;
-  std::function<void(Status)> on_closed;
-  std::function<void(std::string_view)> on_text_message_received;
-  std::function<void(std::span<const uint8_t>)> on_binary_message_received;
-  std::function<void()> on_data_sent;
+  std::move_only_function<void(Status)> on_connected;
+  std::move_only_function<void(Status)> on_closed;
+  std::move_only_function<void(std::string_view)> on_text_message_received;
+  std::move_only_function<void(std::span<const uint8_t>)> on_binary_message_received;
+  std::move_only_function<void()> on_data_sent;
 
   std::optional<websocket::MaskingKey> generate_masking_key_if_needed();
 
@@ -136,13 +136,14 @@ class WebSocketClientImpl : public std::enable_shared_from_this<WebSocketClientI
   void startup(std::shared_ptr<WebSocketClientImpl> self, std::string uri);
   void shutdown(std::shared_ptr<WebSocketClientImpl> self);
 
-  void set_on_connected(std::function<void(Status)> callback);
-  void set_on_closed(std::function<void(Status)> callback);
+  void set_on_connected(std::move_only_function<void(Status)> callback);
+  void set_on_closed(std::move_only_function<void(Status)> callback);
 
-  void set_on_text_message_received(std::function<void(std::string_view)> callback);
-  void set_on_binary_message_received(std::function<void(std::span<const uint8_t>)> callback);
+  void set_on_text_message_received(std::move_only_function<void(std::string_view)> callback);
+  void set_on_binary_message_received(
+    std::move_only_function<void(std::span<const uint8_t>)> callback);
 
-  void set_on_data_sent(std::function<void()> callback);
+  void set_on_data_sent(std::move_only_function<void()> callback);
 };
 
 }  // namespace async_ws::detail

@@ -48,7 +48,7 @@ class TcpListener {
   const IoContext* io_context() const;
 
   bool valid() const { return impl_ != nullptr; }
-  operator bool() const { return valid(); }
+  explicit operator bool() const { return valid(); }
 
   State state() const;
 
@@ -59,9 +59,9 @@ class TcpListener {
 
   void shutdown();
 
-  void set_on_listening(std::function<void()> callback);
-  void set_on_error(std::function<void(Status)> callback);
-  void set_on_accept(std::function<void(Status, TcpConnection)> callback);
+  void set_on_listening(std::move_only_function<void()> callback);
+  void set_on_error(std::move_only_function<void(Status)> callback);
+  void set_on_accept(std::move_only_function<void(Status, TcpConnection)> callback);
 };
 
 }  // namespace async_net

@@ -4,9 +4,10 @@
 
 namespace async_net {
 
-void IpResolver::resolve(IoContext& context,
-                         std::string hostname,
-                         std::function<void(sock::Status, std::vector<IpAddress>)> callback) {
+void IpResolver::resolve(
+  IoContext& context,
+  std::string hostname,
+  std::move_only_function<void(sock::Status, std::vector<IpAddress>)> callback) {
   context.impl_->queue_ip_resolve(std::move(hostname), std::move(callback));
 }
 

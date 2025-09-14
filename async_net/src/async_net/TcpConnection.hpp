@@ -60,7 +60,7 @@ class TcpConnection {
   const IoContext* io_context() const;
 
   bool valid() const { return impl_ != nullptr; }
-  operator bool() const { return valid(); }
+  explicit operator bool() const { return valid(); }
 
   uint64_t total_bytes_sent() const;
   uint64_t total_bytes_received() const;
@@ -113,11 +113,11 @@ class TcpConnection {
 
   void shutdown();
 
-  void set_on_connected(std::function<void(Status)> callback);
-  void set_on_closed(std::function<void(Status)> callback);
+  void set_on_connected(std::move_only_function<void(Status)> callback);
+  void set_on_closed(std::move_only_function<void(Status)> callback);
 
-  void set_on_data_received(std::function<size_t(std::span<const uint8_t>)> callback);
-  void set_on_data_sent(std::function<void()> callback);
+  void set_on_data_received(std::move_only_function<size_t(std::span<const uint8_t>)> callback);
+  void set_on_data_sent(std::move_only_function<void()> callback);
 };
 
 }  // namespace async_net

@@ -605,11 +605,11 @@ void IoContextImpl::unregister_udp_socket(UdpSocketImpl* socket) {
   ContextEntryRegistration::unregister_entry(udp_sockets, socket);
 }
 
-void IoContextImpl::queue_deferred_work(std::function<void()> callback) {
+void IoContextImpl::queue_deferred_work(std::move_only_function<void()> callback) {
   deferred_work_write.push_back(std::move(callback));
 }
 
-void IoContextImpl::queue_deferred_work_atomic(std::function<void()> callback) {
+void IoContextImpl::queue_deferred_work_atomic(std::move_only_function<void()> callback) {
   {
     std::lock_guard lock(deferred_work_atomic_mutex);
     deferred_work_atomic_write.push_back(std::move(callback));
@@ -617,13 +617,14 @@ void IoContextImpl::queue_deferred_work_atomic(std::function<void()> callback) {
   notify();
 }
 
-void IoContextImpl::queue_ip_resolve(std::string hostname,
-                                     std::function<void(Status, std::vector<IpAddress>)> callback) {
+void IoContextImpl::queue_ip_resolve(
+  std::string hostname,
+  std::move_only_function<void(Status, std::vector<IpAddress>)> callback) {
   ip_resolver.resolve(std::move(hostname), std::move(callback));
 }
 
 TimerManagerImpl::TimerKey IoContextImpl::register_timer(base::PreciseTime deadline,
-                                                         std::function<void()> callback) {
+                                                         std::move_only_function<void()> callback) {
   return timer_manager.register_timer(deadline, std::move(callback));
 }
 

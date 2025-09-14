@@ -84,21 +84,21 @@ void WebSocketServerImpl::shutdown(std::shared_ptr<WebSocketServerImpl> self) {
   }
 }
 
-void WebSocketServerImpl::set_on_listening(std::function<void()> callback) {
+void WebSocketServerImpl::set_on_listening(std::move_only_function<void()> callback) {
   detail::update_callback(context, on_listening, std::move(callback));
 }
 
-void WebSocketServerImpl::set_on_error(std::function<void(Status)> callback) {
+void WebSocketServerImpl::set_on_error(std::move_only_function<void(Status)> callback) {
   detail::update_callback(context, on_error, std::move(callback));
 }
 
 void WebSocketServerImpl::set_on_connection_request(
-  std::function<bool(std::string_view, async_net::SocketAddress)> callback) {
+  std::move_only_function<bool(std::string_view, async_net::SocketAddress)> callback) {
   detail::update_callback(context, on_connection_request, std::move(callback));
 }
 
 void WebSocketServerImpl::set_on_client_connected(
-  std::function<void(std::string_view, WebSocketClient)> callback) {
+  std::move_only_function<void(std::string_view, WebSocketClient)> callback) {
   detail::update_callback(context, on_client_connected, std::move(callback));
 }
 

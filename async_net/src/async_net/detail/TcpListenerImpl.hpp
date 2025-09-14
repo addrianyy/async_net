@@ -36,9 +36,9 @@ class TcpListenerImpl {
 
   bool accept_connections{true};
 
-  std::function<void()> on_listening;
-  std::function<void(Status)> on_error;
-  std::function<void(Status, TcpConnection)> on_accept;
+  std::move_only_function<void()> on_listening;
+  std::move_only_function<void(Status)> on_error;
+  std::move_only_function<void(Status, TcpConnection)> on_accept;
 
   void cleanup();
   void cleanup_before_register();

@@ -8,11 +8,11 @@ IoContext::~IoContext() {
   impl_->drain();
 }
 
-void IoContext::post(std::function<void()> callback) {
+void IoContext::post(std::move_only_function<void()> callback) {
   impl_->queue_deferred_work(std::move(callback));
 }
 
-void IoContext::post_atomic(std::function<void()> callback) {
+void IoContext::post_atomic(std::move_only_function<void()> callback) {
   impl_->queue_deferred_work_atomic(std::move(callback));
 }
 
