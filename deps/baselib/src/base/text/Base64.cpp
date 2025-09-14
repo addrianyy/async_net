@@ -15,11 +15,12 @@
 using namespace base;
 
 namespace {
-std::array<char, 64> constexpr encode_table{
-  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-  'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-  'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-  'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'};
+std::array<char, 64> constexpr encode_table{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
+                                            'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+                                            'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
+                                            'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
+                                            's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2',
+                                            '3', '4', '5', '6', '7', '8', '9', '+', '/'};
 
 std::array<std::uint8_t, 256> constexpr decode_table{
   0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64,
@@ -37,7 +38,8 @@ std::array<std::uint8_t, 256> constexpr decode_table{
   0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64,
   0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64,
   0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64,
-  0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64};
+  0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64
+};
 
 std::array<char, 4> encode_tripplet(std::uint8_t a, std::uint8_t b, std::uint8_t c) {
   std::uint32_t const concat_bits = (a << 16) | (b << 8) | c;
@@ -59,8 +61,9 @@ inline bool is_valid_base64_str(std::string_view const encoded_str) {
     return false;
   }
 
-  if (!std::all_of(begin(encoded_str), end(encoded_str) - 2,
-                   [](char c) { return is_valid_base64_char(c); })) {
+  if (!std::all_of(begin(encoded_str), end(encoded_str) - 2, [](char c) {
+        return is_valid_base64_char(c);
+      })) {
     return false;
   }
 

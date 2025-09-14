@@ -1,4 +1,6 @@
 #pragma once
+#include "AlignedStorage.hpp"
+
 #include <memory>
 #include <span>
 #include <type_traits>
@@ -11,7 +13,7 @@ template <typename T, size_t N>
 class StaticVector {
   static_assert(N > 0, "empty StaticVector is not supported");
 
-  using StorageT = std::aligned_storage_t<sizeof(T), alignof(T)>;
+  using StorageT = base::AlignedStorage<sizeof(T), alignof(T)>;
 
   StorageT storage[N];
   size_t size_ = 0;
@@ -25,8 +27,9 @@ class StaticVector {
   }
 
   void move_from(StaticVector&& other) noexcept {
-    std::uninitialized_copy(std::make_move_iterator(other.begin()),
-                            std::make_move_iterator(other.end()), begin());
+    std::uninitialized_copy(
+      std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()), begin()
+    );
     size_ = other.size_;
     other.size_ = 0;
   }

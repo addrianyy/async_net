@@ -14,7 +14,8 @@ class Deferred {
  public:
   CLASS_NON_COPYABLE_NON_MOVABLE(Deferred)
 
-  Deferred(Fn&& fn) : fn(std::forward<Fn>(fn)) {}
+  Deferred(Fn&& fn)
+      : fn(std::forward<Fn>(fn)) {}
   ~Deferred() { fn(); }
 };
 

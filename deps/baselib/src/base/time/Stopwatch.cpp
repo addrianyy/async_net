@@ -6,9 +6,12 @@ Stopwatch::Stopwatch() {
   reset();
 }
 
-void Stopwatch::reset() {
-  start_time = PreciseTime::now();
+PreciseTime Stopwatch::reset() {
+  const auto now = PreciseTime::now();
+  const auto elapsed_result = now - start_time;
+  start_time = now;
   pause_start_time = {};
+  return elapsed_result;
 }
 
 void Stopwatch::pause() {

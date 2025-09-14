@@ -1,4 +1,6 @@
 #pragma once
+#include "AlignedStorage.hpp"
+
 #include <bit>
 #include <memory>
 #include <span>
@@ -11,13 +13,15 @@ namespace base {
 template <typename T>
 class SmallVectorImpl {
  protected:
-  using StorageT = std::aligned_storage_t<sizeof(T), alignof(T)>;
+  using StorageT = base::AlignedStorage<sizeof(T), alignof(T)>;
 
   StorageT* data_ = nullptr;
   size_t size_ = 0;
   size_t capacity_ = 0;
 
-  SmallVectorImpl(StorageT* data, size_t capacity) : data_(data), capacity_(capacity) {}
+  SmallVectorImpl(StorageT* data, size_t capacity)
+      : data_(data),
+        capacity_(capacity) {}
 
   StorageT* get_inline_storage() {
     const auto end = uintptr_t(this) + sizeof(SmallVectorImpl<T>);
@@ -38,8 +42,11 @@ class SmallVectorImpl {
                 : (size_t(1) << (sizeof(size_t) * 8 - std::countl_zero(required_capacity)));
       const auto new_storage = new StorageT[new_capacity];
 
-      std::uninitialized_copy(std::make_move_iterator(begin()), std::make_move_iterator(end()),
-                              reinterpret_cast<T*>(new_storage));
+      std::uninitialized_copy(
+        std::make_move_iterator(begin()),
+        std::make_move_iterator(end()),
+        reinterpret_cast<T*>(new_storage)
+      );
 
       if (!is_using_inline_storage()) {
         delete[] data_;
@@ -176,8 +183,9 @@ class SmallVector : public SmallVectorImpl<T> {
     if (other.is_using_inline_storage()) {
       this->ensure_capacity(other.size());
 
-      std::uninitialized_copy(std::make_move_iterator(other.begin()),
-                              std::make_move_iterator(other.end()), this->begin());
+      std::uninitialized_copy(
+        std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()), this->begin()
+      );
 
       this->size_ = other.size();
       other.size_ = 0;
@@ -199,17 +207,22 @@ class SmallVector : public SmallVectorImpl<T> {
  public:
   using value_type = T;
 
-  SmallVector() : SmallVectorImpl<T>(inline_storage, N) {
+  SmallVector()
+      : SmallVectorImpl<T>(inline_storage, N) {
     verify(this->is_using_inline_storage(), "offset calculation is incorrect");
   }
 
-  SmallVector(const SmallVectorImpl<T>& other) : SmallVector() { this->copy_from(other); }
+  SmallVector(const SmallVectorImpl<T>& other)
+      : SmallVector() {
+    this->copy_from(other);
+  }
 
   // implemented by SmallVectorImpl:
   // SmallVector& operator=(const SmallVectorImpl<T>& other)
 
   template <size_t OtherN>
-  SmallVector(SmallVector<T, OtherN>&& other) : SmallVector() {
+  SmallVector(SmallVector<T, OtherN>&& other)
+      : SmallVector() {
     move_from(std::move(other));
   }
 

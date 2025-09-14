@@ -12,10 +12,12 @@ enum class TrailingDelimeter {
 };
 
 template <typename Fn>
-static bool split(std::string_view text,
-                  std::string_view delimiter,
-                  TrailingDelimeter trailing_delimeter,
-                  Fn&& callback) {
+static bool split(
+  std::string_view text,
+  std::string_view delimiter,
+  TrailingDelimeter trailing_delimeter,
+  Fn&& callback
+) {
   while (!text.empty()) {
     const auto delimeter_index = text.find_first_of(delimiter);
     if (delimeter_index == std::string_view::npos) {
@@ -37,11 +39,13 @@ static bool split(std::string_view text,
 }
 
 template <typename Fn>
-static bool splitn(std::string_view text,
-                   std::string_view delimiter,
-                   size_t n,
-                   TrailingDelimeter trailing_delimeter,
-                   Fn&& callback) {
+static bool splitn(
+  std::string_view text,
+  std::string_view delimiter,
+  size_t n,
+  TrailingDelimeter trailing_delimeter,
+  Fn&& callback
+) {
   size_t part_index = 0;
 
   while (!text.empty()) {
@@ -69,10 +73,12 @@ static bool splitn(std::string_view text,
 }
 
 template <size_t N>
-static bool split_to(std::string_view text,
-                     std::string_view delimiter,
-                     TrailingDelimeter trailing_delimeter,
-                     std::array<std::string_view, N>& splitted) {
+static bool split_to(
+  std::string_view text,
+  std::string_view delimiter,
+  TrailingDelimeter trailing_delimeter,
+  std::array<std::string_view, N>& splitted
+) {
   size_t index = 0;
 
   const auto result = split(text, delimiter, trailing_delimeter, [&](std::string_view part) {
@@ -89,10 +95,12 @@ static bool split_to(std::string_view text,
 }
 
 template <size_t N>
-static bool splitn_to(std::string_view text,
-                      std::string_view delimiter,
-                      TrailingDelimeter trailing_delimeter,
-                      std::array<std::string_view, N>& splitted) {
+static bool splitn_to(
+  std::string_view text,
+  std::string_view delimiter,
+  TrailingDelimeter trailing_delimeter,
+  std::array<std::string_view, N>& splitted
+) {
   size_t index = 0;
 
   const auto result = splitn(text, delimiter, N, trailing_delimeter, [&](std::string_view part) {

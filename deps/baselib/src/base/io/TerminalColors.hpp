@@ -9,8 +9,8 @@ namespace base {
 #endif
 #endif
 
-#if TERMINAL_DISABLE_COLORS
-#define TERMINAL_ESCAPE(x)
+#ifdef TERMINAL_DISABLE_COLORS
+#define TERMINAL_ESCAPE(x) ""
 #else
 #define TERMINAL_ESCAPE(x) x
 #endif

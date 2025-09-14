@@ -17,7 +17,7 @@ static uint8_t packet_type_to_opcode(PacketType type) {
     case PacketType::Ping: return 9;
     case PacketType::Pong: return 10;
     default:
-      unreachable();
+      panic_unreachable();
   }
   // clang-format on
 }

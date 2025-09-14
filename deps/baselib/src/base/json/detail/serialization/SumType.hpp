@@ -8,8 +8,9 @@ namespace base::json {
 namespace detail {
 
 template <typename T, typename CurrentVariant, typename... Rest>
-static std::optional<T> deserialize_variant(typename T::VariantIdType variant_id,
-                                            const Value& value) {
+static std::optional<T> deserialize_variant(
+  typename T::VariantIdType variant_id, const Value& value
+) {
   if (base::VariantIdFor<CurrentVariant>::id == variant_id) {
     auto deserialized = json::deserialize<CurrentVariant>(value);
     if (deserialized) {
@@ -82,8 +83,9 @@ struct Deserializer<base::SumType<Args...>> {
       return std::nullopt;
     }
 
-    return detail::deserialize_variant<base::SumType<Args...>, Args...>(*variant_id,
-                                                                        *serialized_value);
+    return detail::deserialize_variant<base::SumType<Args...>, Args...>(
+      *variant_id, *serialized_value
+    );
   }
 };
 

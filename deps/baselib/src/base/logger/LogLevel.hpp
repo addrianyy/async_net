@@ -9,4 +9,4 @@ enum class LogLevel {
   Error,
 };
 
-}
+}  // namespace base

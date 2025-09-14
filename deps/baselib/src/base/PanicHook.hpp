@@ -12,7 +12,8 @@ class PanicHookRegistration {
 
   uint64_t index{invalid_index};
 
-  explicit PanicHookRegistration(uint64_t index) : index(index) {}
+  explicit PanicHookRegistration(uint64_t index)
+      : index(index) {}
 
  public:
   static PanicHookRegistration register_hook(PanicHook hook);

@@ -7,13 +7,12 @@ using namespace base;
 
 #define TIMESTAMP_FORMAT "[{:>10.3f}]"
 
-StdoutLogger::StdoutLogger(bool allow_colors) : allow_colors(allow_colors) {}
+StdoutLogger::StdoutLogger(bool allow_colors)
+    : allow_colors(allow_colors) {}
 
-void StdoutLogger::log(const char* file,
-                       int line,
-                       LogLevel level,
-                       fmt::string_view fmt,
-                       fmt::format_args args) {
+void StdoutLogger::log(
+  const char* file, int line, LogLevel level, fmt::string_view fmt, fmt::format_args args
+) {
   (void)file;
   (void)line;
 
@@ -49,23 +48,30 @@ void StdoutLogger::log(const char* file,
 
   if (allow_colors) {
     if (level == LogLevel::Error) {
-      base::println(TERMINAL_COLOR_SEQUENCE_MAGENTA TIMESTAMP_FORMAT
-                    " {}{} {}" TERMINAL_RESET_SEQUENCE,
-                    timestamp.seconds(), color, header, message);
+      base::println(
+        TERMINAL_COLOR_SEQUENCE_MAGENTA TIMESTAMP_FORMAT " {}{} {}" TERMINAL_RESET_SEQUENCE,
+        timestamp.seconds(),
+        color,
+        header,
+        message
+      );
     } else {
-      base::println(TERMINAL_COLOR_SEQUENCE_MAGENTA TIMESTAMP_FORMAT " {}{}" TERMINAL_RESET_SEQUENCE
-                                                                     " {}",
-                    timestamp.seconds(), color, header, message);
+      base::println(
+        TERMINAL_COLOR_SEQUENCE_MAGENTA TIMESTAMP_FORMAT " {}{}" TERMINAL_RESET_SEQUENCE " {}",
+        timestamp.seconds(),
+        color,
+        header,
+        message
+      );
     }
   } else {
     base::println(TIMESTAMP_FORMAT " {} {}", timestamp.seconds(), header, message);
   }
 }
 
-void StdoutLogger::log_panic(const char* file,
-                             int line,
-                             fmt::string_view fmt,
-                             fmt::format_args args) {
+void StdoutLogger::log_panic(
+  const char* file, int line, fmt::string_view fmt, fmt::format_args args
+) {
   log(file, line, LogLevel::Error, fmt, args);
 }
 

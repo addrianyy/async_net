@@ -26,11 +26,9 @@ void Logger::set_min_reported_level(LogLevel level) {
   g_min_reported_level.store(uint32_t(level), std::memory_order_relaxed);
 }
 
-void Logger::log(const char* file,
-                 int line,
-                 LogLevel level,
-                 fmt::string_view fmt,
-                 fmt::format_args args) {
+void Logger::log(
+  const char* file, int line, LogLevel level, fmt::string_view fmt, fmt::format_args args
+) {
   if (g_logger && uint32_t(level) >= g_min_reported_level.load(std::memory_order_relaxed)) {
     g_logger->log(file, line, level, fmt, args);
   }

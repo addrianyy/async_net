@@ -22,43 +22,27 @@ static bool is_separator(char c) {
 
 static TokenType punctuation_to_token_type(char c) {
   switch (c) {
-    case '{':
-      return TokenType::OpeningBrace;
-    case '}':
-      return TokenType::ClosingBrace;
-    case '[':
-      return TokenType::OpeningBracket;
-    case ']':
-      return TokenType::ClosingBracket;
-    case ',':
-      return TokenType::Comma;
-    case ':':
-      return TokenType::Colon;
-    default:
-      return TokenType::Invalid;
+    case '{': return TokenType::OpeningBrace;
+    case '}': return TokenType::ClosingBrace;
+    case '[': return TokenType::OpeningBracket;
+    case ']': return TokenType::ClosingBracket;
+    case ',': return TokenType::Comma;
+    case ':': return TokenType::Colon;
+    default:  return TokenType::Invalid;
   }
 }
 
 static char escape_to_character(char escape) {
   switch (escape) {
-    case '"':
-      return '"';
-    case '\\':
-      return '\\';
-    case '/':
-      return '/';
-    case 'b':
-      return '\b';
-    case 'f':
-      return '\f';
-    case 'n':
-      return '\n';
-    case 'r':
-      return '\r';
-    case 't':
-      return '\t';
-    default:
-      return 0;
+    case '"':  return '"';
+    case '\\': return '\\';
+    case '/':  return '/';
+    case 'b':  return '\b';
+    case 'f':  return '\f';
+    case 'n':  return '\n';
+    case 'r':  return '\r';
+    case 't':  return '\t';
+    default:   return 0;
   }
 }
 
@@ -339,7 +323,9 @@ Token Lexer::consume_keyword() {
   };
 }
 
-Lexer::Lexer(std::string_view source) : source(source), line_start(source) {}
+Lexer::Lexer(std::string_view source)
+    : source(source),
+      line_start(source) {}
 
 Token Lexer::next() {
   skip_characters();

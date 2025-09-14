@@ -4,8 +4,9 @@
 
 using namespace base::json;
 
-std::optional<Value> base::json::parse(std::string_view text,
-                                       ParsingErrorLocation* error_location) {
+std::optional<Value> base::json::parse(
+  std::string_view text, ParsingErrorLocation* error_location
+) {
   detail::Lexer lexer{text};
   detail::Parser parser{lexer};
   detail::Token::Location token_error_location{};

@@ -17,8 +17,10 @@ uint32_t base::performance_core_count() {
   int cpus = 0;
   size_t cpus_size = sizeof(cpus);
 
-  verify(sysctlbyname("hw.perflevel0.physicalcpu", &cpus, &cpus_size, nullptr, 0) == 0,
-         "sysctlbyname failed");
+  verify(
+    sysctlbyname("hw.perflevel0.physicalcpu", &cpus, &cpus_size, nullptr, 0) == 0,
+    "sysctlbyname failed"
+  );
 
   return uint32_t(cpus);
 }

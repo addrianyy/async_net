@@ -10,7 +10,7 @@ class Stopwatch {
  public:
   Stopwatch();
 
-  void reset();
+  PreciseTime reset();
 
   void pause();
   void resume();

@@ -9,7 +9,8 @@ namespace base {
 class PreciseTime {
   uint64_t nano{};
 
-  constexpr explicit PreciseTime(uint64_t nanoseconds) : nano(nanoseconds) {}
+  constexpr explicit PreciseTime(uint64_t nanoseconds)
+      : nano(nanoseconds) {}
 
  public:
   constexpr PreciseTime() = default;
@@ -85,8 +86,9 @@ struct fmt::formatter<base::PreciseTime> {
         i++;
       }
 
-      return format_to(ctx.out(), "{}.{:03}{}", time_value / 1000u, time_value % 1000u,
-                       suffixes[i]);
+      return format_to(
+        ctx.out(), "{}.{:03}{}", time_value / 1000u, time_value % 1000u, suffixes[i]
+      );
     }
   }
 };

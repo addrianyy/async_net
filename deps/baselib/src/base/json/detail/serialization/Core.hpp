@@ -28,7 +28,8 @@ std::optional<Value> serialize(const T& value) {
       }
     } else {
       return Serializer<std::underlying_type_t<Type>>::serialize(
-        std::underlying_type_t<Type>(value));
+        std::underlying_type_t<Type>(value)
+      );
     }
   } else {
     return Serializer<Type>::serialize(value);
@@ -63,8 +64,10 @@ std::optional<T> deserialize(const Value& value) {
 template <typename T>
 struct Serializer {
   static std::optional<Value> serialize(const T& value) {
-    static_assert(reflection::HasStructureFields<T>,
-                  "type doesn't have custom serializer or reflection::StructureFields defined");
+    static_assert(
+      reflection::HasStructureFields<T>,
+      "type doesn't have custom serializer or reflection::StructureFields defined"
+    );
 
     Object serialized;
     bool success{true};
@@ -80,7 +83,8 @@ struct Serializer {
           success = false;
         }
       },
-      value);
+      value
+    );
 
     if (success) {
       return serialized;
@@ -93,8 +97,10 @@ struct Serializer {
 template <typename T>
 struct Deserializer {
   static std::optional<T> deserialize(const Value& value) {
-    static_assert(reflection::HasStructureFields<T>,
-                  "type doesn't have custom deserializer or reflection::StructureFields defined");
+    static_assert(
+      reflection::HasStructureFields<T>,
+      "type doesn't have custom deserializer or reflection::StructureFields defined"
+    );
 
     const auto object = value.object();
     if (!object) {
@@ -119,7 +125,8 @@ struct Deserializer {
           success = false;
         }
       },
-      deserialized);
+      deserialized
+    );
 
     if (success) {
       return deserialized;

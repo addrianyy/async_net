@@ -34,10 +34,12 @@ PanicHookRegistration PanicHookRegistration::register_hook(PanicHook hook) {
 
   const auto id = g_panic_hooks.next_hook_id++;
 
-  g_panic_hooks.entries.push_back(PanicHookEntry{
-    .id = id,
-    .hook = std::move(hook),
-  });
+  g_panic_hooks.entries.push_back(
+    PanicHookEntry{
+      .id = id,
+      .hook = std::move(hook),
+    }
+  );
 
   return PanicHookRegistration{id};
 }
@@ -49,8 +51,9 @@ void PanicHookRegistration::unregister_hook() {
 
   {
     std::unique_lock lock(g_panic_hooks.mutex);
-    std::erase_if(g_panic_hooks.entries,
-                  [this](const PanicHookEntry& entry) { return entry.id == index; });
+    std::erase_if(g_panic_hooks.entries, [this](const PanicHookEntry& entry) {
+      return entry.id == index;
+    });
   }
 
   index = invalid_index;
@@ -60,10 +63,9 @@ bool base::is_panicking() {
   return g_is_panicking.load(std::memory_order_relaxed);
 }
 
-[[noreturn]] void detail::panic::do_fatal_error(const char* file,
-                                                int line,
-                                                fmt::string_view fmt,
-                                                fmt::format_args args) {
+[[noreturn]] void detail::panic::do_fatal_error(
+  const char* file, int line, fmt::string_view fmt, fmt::format_args args
+) {
   if (g_is_panicking.exchange(true)) {
     while (true) {
       std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -95,10 +97,9 @@ bool base::is_panicking() {
   std::_Exit(EXIT_FAILURE);
 }
 
-[[noreturn]] void detail::panic::do_verify_fail(const char* file,
-                                                int line,
-                                                fmt::string_view fmt,
-                                                fmt::format_args args) {
+[[noreturn]] void detail::panic::do_verify_fail(
+  const char* file, int line, fmt::string_view fmt, fmt::format_args args
+) {
   const auto message = fmt::vformat(fmt, args);
 
   if (message.empty()) {

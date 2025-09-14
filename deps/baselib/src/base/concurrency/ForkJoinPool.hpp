@@ -64,9 +64,40 @@ class BasicForTask : public BaseForkJoinPool::Task {
 
  public:
   explicit BasicForTask(uint64_t count, Fn&& body)
-      : iterator(count), body(std::forward<Fn>(body)) {}
+      : iterator(count),
+        body(std::forward<Fn>(body)) {}
 
   void execute(uint32_t tid) override { iterator.consume(body); }
+};
+
+template <typename Fn>
+class BasicForTaskWithThreadID : public BaseForkJoinPool::Task {
+  AtomicIterator<uint64_t> iterator;
+  Fn body;
+
+ public:
+  explicit BasicForTaskWithThreadID(uint64_t count, Fn&& body)
+      : iterator(count),
+        body(std::forward<Fn>(body)) {}
+
+  void execute(uint32_t tid) override {
+    iterator.consume([this, tid](uint64_t v) { body(tid, v); });
+  }
+};
+
+template <typename Fn>
+class BasicGroupedForTask : public BaseForkJoinPool::Task {
+  AtomicIterator<uint64_t> iterator;
+  uint64_t group_size;
+  Fn body;
+
+ public:
+  explicit BasicGroupedForTask(uint64_t count, uint64_t group_size, Fn&& body)
+      : iterator(count),
+        group_size(group_size),
+        body(std::forward<Fn>(body)) {}
+
+  void execute(uint32_t tid) override { iterator.consume(group_size, body); }
 };
 
 }  // namespace detail::fork_join
@@ -78,6 +109,18 @@ class ForkJoinPool : public detail::BaseForkJoinPool {
   template <typename Fn>
   void parallel_for(uint64_t count, Fn&& body) {
     detail::fork_join::BasicForTask<Fn> task{count, std::forward<Fn>(body)};
+    run_task(task);
+  }
+
+  template <typename Fn>
+  void parallel_for_with_tid(uint64_t count, Fn&& body) {
+    detail::fork_join::BasicForTaskWithThreadID<Fn> task{count, std::forward<Fn>(body)};
+    run_task(task);
+  }
+
+  template <typename Fn>
+  void parallel_for_grouped(uint64_t count, uint64_t group_size, Fn&& body) {
+    detail::fork_join::BasicGroupedForTask<Fn> task{count, group_size, std::forward<Fn>(body)};
     run_task(task);
   }
 };

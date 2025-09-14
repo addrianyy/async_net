@@ -144,7 +144,8 @@ class String {
   constexpr static ValueType variant_id = ValueType::String;
 
   String() = default;
-  String(std::string string) : string_(std::move(string)) {}
+  String(std::string string)
+      : string_(std::move(string)) {}
 
   std::string& get() { return string_; }
   const std::string& get() const { return string_; }
@@ -266,7 +267,8 @@ class Boolean {
   constexpr static ValueType variant_id = ValueType::Boolean;
 
   Boolean() = default;
-  Boolean(bool value) : value_(value) {}
+  Boolean(bool value)
+      : value_(value) {}
 
   bool get() const { return value_; }
   void set(bool value) { value_ = value; }
@@ -285,7 +287,8 @@ class Value : public base::SumType<Object, Array, String, Number, Boolean, Null>
  public:
   using SumType::SumType;
 
-  Value() : SumType(Null{}) {}
+  Value()
+      : SumType(Null{}) {}
 
   ValueType type() const { return id(); }
 
@@ -316,8 +319,10 @@ class Value : public base::SumType<Object, Array, String, Number, Boolean, Null>
     constexpr auto is_native_bool = std::is_same_v<T, bool>;
     constexpr auto is_native_string = std::is_same_v<T, std::string_view>;
 
-    static_assert(is_native_number || is_native_bool || is_native_string,
-                  "T must be one of: numeric type, boolean or std::string_view");
+    static_assert(
+      is_native_number || is_native_bool || is_native_string,
+      "T must be one of: numeric type, boolean or std::string_view"
+    );
 
     if constexpr (is_native_number && !is_native_bool) {
       const auto value = number();

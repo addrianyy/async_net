@@ -1037,7 +1037,7 @@ static sock::Result<std::pair<sock::StreamSocket, sock::StreamSocket>> windows_s
     return {.status = listener_status};
   }
 
-  auto [local_address_status, local_address] = listener.local_address<Address>();
+  auto [local_address_status, local_address] = listener.template local_address<Address>();
   if (!local_address_status) {
     return {.status = local_address_status};
   }

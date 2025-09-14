@@ -13,3 +13,8 @@
   target& operator=(const target&) = delete;   \
   target(target&&) = delete;                   \
   target& operator=(target&&) = delete;
+
+#define CLASS_MOVE_ONLY(target)        \
+  CLASS_NON_COPYABLE(target)           \
+  target(target&&) noexcept = default; \
+  target& operator=(target&&) = default;

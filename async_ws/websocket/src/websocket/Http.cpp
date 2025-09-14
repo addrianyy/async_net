@@ -37,7 +37,7 @@ static std::string_view method_to_string(Method method) {
     case Method::Post: return "POST";
     case Method::Patch: return "PATCH";
     case Method::Connect: return "CONNECT";
-    default: unreachable();
+    default: panic_unreachable();
   }
   // clang-format on
 }

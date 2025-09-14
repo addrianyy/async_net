@@ -13,4 +13,6 @@ target_sources(baselib PUBLIC
     SumType.hpp
     BinaryBuffer.cpp
     BinaryBuffer.hpp
+    AlignedStorage.cpp
+    AlignedStorage.hpp
 )

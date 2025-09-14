@@ -39,7 +39,8 @@ BaseForkJoinPool::BaseForkJoinPool(size_t thread_count) {
   }
 }
 
-BaseForkJoinPool::BaseForkJoinPool() : BaseForkJoinPool(std::thread::hardware_concurrency()) {}
+BaseForkJoinPool::BaseForkJoinPool()
+    : BaseForkJoinPool(std::thread::hardware_concurrency()) {}
 
 BaseForkJoinPool::~BaseForkJoinPool() {
   exit();

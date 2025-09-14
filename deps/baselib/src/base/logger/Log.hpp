@@ -5,18 +5,14 @@
 
 namespace base::detail::log {
 
-void do_log(const char* file,
-            int line,
-            LogLevel level,
-            fmt::string_view fmt,
-            fmt::format_args args);
+void do_log(
+  const char* file, int line, LogLevel level, fmt::string_view fmt, fmt::format_args args
+);
 
 template <typename... Args>
-inline void log_fmt(const char* file,
-                    int line,
-                    LogLevel level,
-                    base::format_string<Args...> fmt,
-                    Args&&... args) {
+inline void log_fmt(
+  const char* file, int line, LogLevel level, base::format_string<Args...> fmt, Args&&... args
+) {
   do_log(file, line, level, fmt, fmt::make_format_args(args...));
 }
 

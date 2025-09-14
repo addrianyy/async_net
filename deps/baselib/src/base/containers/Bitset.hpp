@@ -8,15 +8,17 @@ namespace base {
 
 template <typename TStorage>
 class Bitset {
-  static_assert(std::is_same_v<typename TStorage::value_type, uint64_t>,
-                "vector type must be uint64_t");
+  static_assert(
+    std::is_same_v<typename TStorage::value_type, uint64_t>, "vector type must be uint64_t"
+  );
 
   TStorage set;
 
  public:
   Bitset() = default;
   template <typename... Args>
-  explicit Bitset(size_t n, Args&&... args) : set(std::forward<Args>(args)...) {
+  explicit Bitset(size_t n, Args&&... args)
+      : set(std::forward<Args>(args)...) {
     resize(n);
   }
 

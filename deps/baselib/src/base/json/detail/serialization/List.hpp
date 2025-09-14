@@ -29,9 +29,9 @@ static std::optional<Value> serialize_list_like_container(const T& container) {
 }
 
 template <typename E, typename SizeCallback, typename ElementCallback>
-static bool deserialize_list_like_container(const Value& value,
-                                            SizeCallback&& size_callback,
-                                            ElementCallback&& element_callback) {
+static bool deserialize_list_like_container(
+  const Value& value, SizeCallback&& size_callback, ElementCallback&& element_callback
+) {
   const auto array = value.array();
   if (!array) {
     return false;
@@ -78,7 +78,8 @@ struct Deserializer<std::vector<E>> {
         elements.reserve(size);
         return true;
       },
-      [&](E element) { elements.push_back(std::move(element)); });
+      [&](E element) { elements.push_back(std::move(element)); }
+    );
 
     if (result) {
       return elements;
@@ -101,8 +102,10 @@ struct Deserializer<std::array<E, N>> {
     std::array<E, N> elements{};
     size_t i{};
     const auto result = detail::deserialize_list_like_container<E>(
-      value, [&](size_t size) { return elements.size() == size; },
-      [&](E element) { elements[i++] = std::move(element); });
+      value,
+      [&](size_t size) { return elements.size() == size; },
+      [&](E element) { elements[i++] = std::move(element); }
+    );
 
     if (result) {
       return elements;
@@ -124,8 +127,10 @@ struct Deserializer<std::set<E>> {
   static std::optional<std::set<E>> deserialize(const Value& value) {
     std::set<E> elements;
     const auto result = detail::deserialize_list_like_container<E>(
-      value, [&](size_t size) { return true; },
-      [&](E element) { elements.insert(std::move(element)); });
+      value,
+      [&](size_t size) { return true; },
+      [&](E element) { elements.insert(std::move(element)); }
+    );
 
     if (result) {
       return elements;
@@ -152,7 +157,8 @@ struct Deserializer<std::unordered_set<E>> {
         elements.reserve(size);
         return true;
       },
-      [&](E element) { elements.insert(std::move(element)); });
+      [&](E element) { elements.insert(std::move(element)); }
+    );
 
     if (result) {
       return elements;

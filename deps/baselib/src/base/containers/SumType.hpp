@@ -1,10 +1,13 @@
 #pragma once
+#include "AlignedStorage.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <type_traits>
+#include <utility>
 
 #include <base/Overload.hpp>
 
@@ -50,19 +53,14 @@ constexpr auto visit(auto variant_id, auto* storage_ptr, Fn&& fn) {
     } else if constexpr (std::is_invocable_v<Fn, QualifiedT*>) {
       return fn(reinterpret_cast<QualifiedT*>(storage_ptr));
     } else {
-      static_assert(std::is_invocable_v<Fn>,
-                    "visit is not exhaustive but doesn't have any default case");
+      static_assert(
+        std::is_invocable_v<Fn>, "visit is not exhaustive but doesn't have any default case"
+      );
       return fn();
     }
   } else {
     if constexpr (sizeof...(Args) == 0) {
-      // Unreachable code.
-      // TODO: Replace with `std::unreachable()` in C++23.
-#if defined(__GNUC__)
-      __builtin_unreachable();
-#elif defined(_MSC_VER)
-      __assume(false);
-#endif
+      std::unreachable();
     } else {
       return visit<Constant, Fn, Args...>(variant_id, storage_ptr, std::forward<Fn>(fn));
     }
@@ -72,7 +70,8 @@ constexpr auto visit(auto variant_id, auto* storage_ptr, Fn&& fn) {
 template <typename... Variants>
 consteval bool are_variants_unique() {
   const std::array<typename VariantIdType<Variants...>::T, sizeof...(Variants)> variants{
-    VariantIdFor<Variants>::id...};
+    VariantIdFor<Variants>::id...
+  };
 
   for (size_t i = 0; i < variants.size(); ++i) {
     const auto variant = variants[i];
@@ -92,23 +91,25 @@ consteval bool are_variants_unique() {
 template <typename... Variants>
 class SumType {
  public:
-  using VariantIdType = detail::sum_type::VariantIdType<Variants...>::T;
+  using VariantIdType = typename detail::sum_type::VariantIdType<Variants...>::T;
 
  private:
-  using Storage = std::aligned_storage_t<
+  using Storage = base::AlignedStorage<
     detail::sum_type::type_max<detail::sum_type::SizeCalculator, Variants...>(),
     detail::sum_type::type_max<detail::sum_type::AlignmentCalculator, Variants...>()>;
 
-  static_assert(detail::sum_type::are_variants_unique<Variants...>(),
-                "SumType variants are not unique");
+  static_assert(
+    detail::sum_type::are_variants_unique<Variants...>(), "SumType variants are not unique"
+  );
 
   VariantIdType variant_id;
   Storage storage;
 
   template <typename T>
   static constexpr void check_variant_type() {
-    static_assert((std::is_same_v<T, Variants> || ...),
-                  "T is not one of the types specified as variant");
+    static_assert(
+      (std::is_same_v<T, Variants> || ...), "T is not one of the types specified as variant"
+    );
   }
 
   constexpr void destroy() {
@@ -180,14 +181,16 @@ class SumType {
 
   template <typename Fn>
   constexpr auto visit(Fn&& fn) {
-    return detail::sum_type::visit<false, Fn, Variants...>(variant_id, &storage,
-                                                           std::forward<Fn>(fn));
+    return detail::sum_type::visit<false, Fn, Variants...>(
+      variant_id, &storage, std::forward<Fn>(fn)
+    );
   }
 
   template <typename Fn>
   constexpr auto visit(Fn&& fn) const {
-    return detail::sum_type::visit<true, Fn, Variants...>(variant_id, &storage,
-                                                          std::forward<Fn>(fn));
+    return detail::sum_type::visit<true, Fn, Variants...>(
+      variant_id, &storage, std::forward<Fn>(fn)
+    );
   }
 
   template <typename T>

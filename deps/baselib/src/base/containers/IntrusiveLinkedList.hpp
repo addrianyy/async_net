@@ -117,9 +117,12 @@ class IntrusiveLinkedList {
     using pointer = value_type*;
     using reference = value_type&;
 
-    explicit IteratorInternal(std::nullptr_t) : node(nullptr) {}
-    explicit IteratorInternal(TValue* value) : node(static_cast<TNode*>(value)) {}
-    explicit IteratorInternal(TNode* node) : node(node) {}
+    explicit IteratorInternal(std::nullptr_t)
+        : node(nullptr) {}
+    explicit IteratorInternal(TValue* value)
+        : node(static_cast<TNode*>(value)) {}
+    explicit IteratorInternal(TNode* node)
+        : node(node) {}
 
     IteratorInternal& operator++() {
       node = Reversed ? node->previous() : node->next();
@@ -174,7 +177,8 @@ class IntrusiveLinkedList {
  public:
   CLASS_NON_COPYABLE_NON_MOVABLE(IntrusiveLinkedList);
 
-  explicit IntrusiveLinkedList(Owner* owner) : owner_(owner) {}
+  explicit IntrusiveLinkedList(Owner* owner)
+      : owner_(owner) {}
 
   ~IntrusiveLinkedList() {
     if constexpr (Traits::list_type == IntrusiveListType::Owning) {

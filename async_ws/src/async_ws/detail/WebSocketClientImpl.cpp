@@ -119,7 +119,7 @@ void WebSocketClientImpl::dispatch_message(std::span<const uint8_t> payload) {
     }
 
     default:
-      unreachable();
+      panic_unreachable();
   }
 
   receive_state = ReceiveState::Idle;
@@ -249,7 +249,7 @@ bool WebSocketClientImpl::handle_websocket_packet(const websocket::Packet& packe
     }
 
     default:
-      unreachable();
+      panic_unreachable();
   }
 }
 

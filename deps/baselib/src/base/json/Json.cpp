@@ -4,7 +4,8 @@
 
 using namespace base::json;
 
-Object::Object(Map entries) : entries_(std::move(entries)) {}
+Object::Object(Map entries)
+    : entries_(std::move(entries)) {}
 
 Value* Object::get(std::string_view key) {
   const auto it = entries_.find(key);
@@ -51,7 +52,8 @@ bool Object::empty() const {
   return entries_.empty();
 }
 
-Array::Array(Vector entries) : entries_(std::move(entries)) {}
+Array::Array(Vector entries)
+    : entries_(std::move(entries)) {}
 
 void Array::append(Value value) {
   entries_.push_back(std::move(value));

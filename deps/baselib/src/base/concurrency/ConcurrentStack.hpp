@@ -1,6 +1,7 @@
 #pragma once
 #include <condition_variable>
 #include <mutex>
+#include <span>
 #include <vector>
 
 namespace base {
@@ -28,7 +29,7 @@ class ConcurrentStack {
     cv.notify_one();
   }
 
-  void push_back_many(std::vector<T>& data) {
+  void push_back_many(std::span<T>& data) {
     if (data.empty()) {
       return;
     }

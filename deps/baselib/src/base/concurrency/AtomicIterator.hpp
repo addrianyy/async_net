@@ -17,7 +17,8 @@ class AtomicIterator {
  public:
   CLASS_NON_COPYABLE_NON_MOVABLE(AtomicIterator)
 
-  explicit AtomicIterator(T count) : count(count) {}
+  explicit AtomicIterator(T count)
+      : count(count) {}
 
   bool next(T& value, T step = 1) {
     const T v = iterator.fetch_add(step, std::memory_order_relaxed);

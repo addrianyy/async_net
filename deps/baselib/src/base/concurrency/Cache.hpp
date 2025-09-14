@@ -18,7 +18,8 @@ class alignas(max_cache_line_size) CacheLineAligned {
 
  public:
   CacheLineAligned() = default;
-  CacheLineAligned(T&& data) : data(std::move(data)) {}
+  CacheLineAligned(T&& data)
+      : data(std::move(data)) {}
 
   T& get() { return data; }
   T& operator*() { return get(); }

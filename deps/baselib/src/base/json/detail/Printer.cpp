@@ -22,22 +22,14 @@ using namespace base::json::detail;
 
 static char character_to_escape(char character) {
   switch (character) {
-    case '"':
-      return '"';
-    case '\\':
-      return '\\';
-    case '\b':
-      return 'b';
-    case '\f':
-      return 'f';
-    case '\n':
-      return 'n';
-    case '\r':
-      return 'r';
-    case '\t':
-      return 't';
-    default:
-      return 0;
+    case '"':  return '"';
+    case '\\': return '\\';
+    case '\b': return 'b';
+    case '\f': return 'f';
+    case '\n': return 'n';
+    case '\r': return 'r';
+    case '\t': return 't';
+    default:   return 0;
   }
 }
 
@@ -86,7 +78,9 @@ void Printer::print_string(std::string_view string) {
 }
 
 Printer::Printer(std::string& output, uint32_t indentation)
-    : output(output), indentation(indentation), pretty(indentation > 0) {}
+    : output(output),
+      indentation(indentation),
+      pretty(indentation > 0) {}
 
 void Printer::print(const Value& value) {
   value.visit([this](const auto& v) { print(v); });
@@ -189,8 +183,7 @@ void Printer::print(const Number& number) {
       base::format_to(std::back_insert_iterator(output), "{}", *v);
       break;
     }
-    default:
-      unreachable();
+    default: panic_unreachable();
   }
 }
 

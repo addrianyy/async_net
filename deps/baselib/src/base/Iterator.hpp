@@ -11,7 +11,9 @@ class IteratorRange {
  public:
   using iterator = T;
 
-  IteratorRange(T begin_it, T end_it) : begin_it(begin_it), end_it(end_it) {}
+  IteratorRange(T begin_it, T end_it)
+      : begin_it(begin_it),
+        end_it(end_it) {}
 
   T begin() const { return begin_it; }
   T end() const { return end_it; }

@@ -109,14 +109,10 @@ std::optional<Value> Parser::parse_number() {
   next_token();
 
   switch (format) {
-    case Number::Format::Int:
-      return Number{int64_t(i_value)};
-    case Number::Format::UInt:
-      return Number{uint64_t(i_value)};
-    case Number::Format::Double:
-      return Number{d_value};
-    default:
-      unreachable();
+    case Number::Format::Int:    return Number{int64_t(i_value)};
+    case Number::Format::UInt:   return Number{uint64_t(i_value)};
+    case Number::Format::Double: return Number{d_value};
+    default:                     panic_unreachable();
   }
 }
 
@@ -127,24 +123,16 @@ std::optional<Value> Parser::parse_value() {
   };
 
   switch (current_token.type) {
-    case TokenType::OpeningBrace:
-      return parse_object();
-    case TokenType::OpeningBracket:
-      return parse_array();
-    case TokenType::Number:
-      return parse_number();
-    case TokenType::String:
-      return consume_token(String{std::move(current_token.string)});
+    case TokenType::OpeningBrace:   return parse_object();
+    case TokenType::OpeningBracket: return parse_array();
+    case TokenType::Number:         return parse_number();
+    case TokenType::String:         return consume_token(String{std::move(current_token.string)});
 
-    case TokenType::True:
-      return consume_token(Boolean{true});
-    case TokenType::False:
-      return consume_token(Boolean{false});
-    case TokenType::Null:
-      return consume_token(Null{});
+    case TokenType::True:  return consume_token(Boolean{true});
+    case TokenType::False: return consume_token(Boolean{false});
+    case TokenType::Null:  return consume_token(Null{});
 
-    default:
-      return std::nullopt;
+    default: return std::nullopt;
   }
 }
 
@@ -159,7 +147,8 @@ std::optional<Value> Parser::parse_root_value() {
   return std::nullopt;
 }
 
-Parser::Parser(Lexer lexer) : lexer(lexer) {
+Parser::Parser(Lexer lexer)
+    : lexer(lexer) {
   current_token = this->lexer.next();
 }
 

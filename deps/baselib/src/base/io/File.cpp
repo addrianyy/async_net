@@ -34,10 +34,9 @@ static bool read_file_internal(const std::string& path, const char* mode, T& out
   return true;
 }
 
-static bool write_file_internal(const std::string& path,
-                                const char* mode,
-                                const void* buffer,
-                                size_t buffer_size) {
+static bool write_file_internal(
+  const std::string& path, const char* mode, const void* buffer, size_t buffer_size
+) {
   File file(path, mode, File::OpenFlags::NoBuffering);
   if (!file) {
     return false;
@@ -125,17 +124,9 @@ int64_t File::tell() const {
 void File::seek(SeekOrigin origin, int64_t offset) {
   int c_origin;
   switch (origin) {
-    case SeekOrigin::Current:
-      c_origin = SEEK_CUR;
-      break;
-
-    case SeekOrigin::Set:
-      c_origin = SEEK_SET;
-      break;
-
-    case SeekOrigin::End:
-      c_origin = SEEK_END;
-      break;
+    case SeekOrigin::Current: c_origin = SEEK_CUR; break;
+    case SeekOrigin::Set:     c_origin = SEEK_SET; break;
+    case SeekOrigin::End:     c_origin = SEEK_END; break;
   }
 
 #ifdef PLATFORM_WINDOWS

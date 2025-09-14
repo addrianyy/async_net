@@ -30,7 +30,8 @@ class RandomDistributor {
   }
 
  public:
-  explicit RandomDistributor(Rng rng) : rng_(rng) {}
+  explicit RandomDistributor(Rng rng)
+      : rng_(rng) {}
 
   Rng& rng() { return rng_; }
   const Rng& rng() const { return rng_; }

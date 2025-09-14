@@ -39,10 +39,13 @@ static void initialize_colors() {}
 void base::initialize() {
   initialize_colors();
 
-  // Set stdout to line-buffering on Linux and no-buffering on Windows (Windows doesn't support
-  // line-buffering).
+// Set stdout to line-buffering on Linux and no-buffering on Windows (Windows doesn't support
+// line-buffering).
 #ifdef PLATFORM_WINDOWS
-  std::setvbuf(stdout, nullptr, _IONBF, 0);
+  if (GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE &&
+      GetStdHandle(STD_OUTPUT_HANDLE) != nullptr) {
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
+  }
 #else
   std::setvbuf(stdout, nullptr, _IOLBF, 0);
 #endif

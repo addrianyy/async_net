@@ -26,8 +26,10 @@ detail::CastResult<To, From> relaxed_cast(From* from) {
 
 template <typename To, typename From>
 detail::CastResult<To, From> cast(From* from) {
-  static_assert(std::is_base_of_v<To, From> || std::is_base_of_v<From, To>,
-                "casting between unrelated pointer types  will always fail");
+  static_assert(
+    std::is_base_of_v<To, From> || std::is_base_of_v<From, To>,
+    "casting between unrelated pointer types  will always fail"
+  );
 
   return relaxed_cast<To, From>(from);
 }
