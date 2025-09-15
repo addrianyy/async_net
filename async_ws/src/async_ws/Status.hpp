@@ -17,6 +17,9 @@ struct Status {
   Error error{};
   async_net::Status net_status{};
 
+  constexpr bool success() const { return error == Error::Ok; }
+  constexpr explicit operator bool() const { return success(); }
+
   std::string stringify() const;
 };
 
