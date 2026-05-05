@@ -3,6 +3,7 @@
 
 #include <async_net/IpAddress.hpp>
 #include <async_net/Status.hpp>
+#include <async_net/TcpConnection.hpp>
 #include <async_net/TcpListener.hpp>
 
 #include <socklib/Socket.hpp>

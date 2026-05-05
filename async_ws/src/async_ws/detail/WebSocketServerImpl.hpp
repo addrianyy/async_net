@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include <async_ws/Status.hpp>
+#include <async_ws/WebSocketClient.hpp>
 #include <async_ws/WebSocketServer.hpp>
 
 #include <async_net/TcpListener.hpp>
