@@ -13,7 +13,7 @@ static Status set_socket_option_timeout_ms(
   if (timeout_ms > std::numeric_limits<uint32_t>::max()) {
     return Status::TimeoutTooLarge;
   }
-  return set_socket_option<uint32_t>(socket, level, option, timeout_ms);
+  return detail::set_socket_option<uint32_t>(socket, level, option, timeout_ms);
 #else
   timeval timeout_timeval{};
   timeout_timeval.tv_sec = static_cast<long>(timeout_ms / 1000);

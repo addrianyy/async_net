@@ -8,6 +8,18 @@ namespace sock::detail {
 
 #if defined(SOCKLIB_WINDOWS)
 
+struct ScatterGatherBase {
+  using Entry = WSABUF;
+
+  __forceinline static void* get_base(const Entry& entry) { return entry.buf; }
+  __forceinline static void set_base(Entry& entry, void* p) { entry.buf = static_cast<char*>(p); }
+
+  __forceinline static size_t get_size(const Entry& entry) { return entry.len; }
+  __forceinline static void set_size(Entry& entry, size_t size) {
+    entry.len = static_cast<ULONG>(size);
+  }
+};
+
 #else
 
 struct ScatterGatherBase {

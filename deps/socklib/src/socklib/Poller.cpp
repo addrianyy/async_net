@@ -190,7 +190,7 @@ class PollerImpl : public Poller {
       source.status_events = {};
 
       dest.fd =
-        source.socket ? detail::RawSocketAccessor::get(*source.socket) : detail::RawSocket{-1};
+        source.socket ? detail::RawSocketAccessor::get(*source.socket) : detail::invalid_socket;
       dest.events = {};
 
       if ((source.query_events & QueryEvents::CanReceiveFrom) == QueryEvents::CanReceiveFrom) {
