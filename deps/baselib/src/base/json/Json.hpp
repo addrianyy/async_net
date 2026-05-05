@@ -118,17 +118,11 @@ class Array {
   Value& operator[](size_t index);
   const Value& operator[](size_t index) const;
 
-  auto begin() { return entries_.begin(); }
-  auto end() { return entries_.end(); }
+  Vector::iterator begin();
+  Vector::iterator end();
 
-  auto begin() const { return entries_.begin(); }
-  auto end() const { return entries_.end(); }
-
-  auto rbegin() { return entries_.rbegin(); }
-  auto rend() { return entries_.rend(); }
-
-  auto rbegin() const { return entries_.rbegin(); }
-  auto rend() const { return entries_.rend(); }
+  Vector::const_iterator begin() const;
+  Vector::const_iterator end() const;
 
   Vector& entries() { return entries_; }
   const Vector& entries() const { return entries_; }

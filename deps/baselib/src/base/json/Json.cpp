@@ -75,6 +75,22 @@ const Value& Array::operator[](size_t index) const {
   return entries_[index];
 }
 
+std::vector<Value>::iterator Array::begin() {
+  return entries_.begin();
+}
+
+std::vector<Value>::iterator Array::end() {
+  return entries_.end();
+}
+
+std::vector<Value>::const_iterator Array::begin() const {
+  return entries_.begin();
+}
+
+std::vector<Value>::const_iterator Array::end() const {
+  return entries_.end();
+}
+
 Array::operator std::span<Value>() {
   return std::span<Value>(entries_.data(), entries_.size());
 }

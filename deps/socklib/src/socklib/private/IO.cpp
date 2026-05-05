@@ -13,7 +13,7 @@ Result<size_t> socket_receive_sg(
     .msg_name = source_address,
     .msg_namelen = static_cast<socklen_t>(source_address_size),
     .msg_iov = const_cast<iovec*>(sg.data()),
-    .msg_iovlen = sg.size(),
+    .msg_iovlen = static_cast<decltype(msghdr.msg_iovlen)>(sg.size()),
   };
 
   const auto result = retry_on_eintr([&] { return recvmsg(socket, &msghdr, 0); });
@@ -36,7 +36,7 @@ Result<size_t> socket_send_sg(
     .msg_name = const_cast<void*>(dest_address),
     .msg_namelen = static_cast<socklen_t>(dest_address_size),
     .msg_iov = const_cast<iovec*>(sg.data()),
-    .msg_iovlen = sg.size(),
+    .msg_iovlen = static_cast<decltype(msghdr.msg_iovlen)>(sg.size()),
   };
 
   const auto result = retry_on_eintr([&] { return sendmsg(socket, &msghdr, MSG_NOSIGNAL); });

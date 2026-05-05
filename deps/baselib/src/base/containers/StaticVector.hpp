@@ -4,6 +4,7 @@
 #include <memory>
 #include <span>
 #include <type_traits>
+#include <iterator>
 
 #include <base/Panic.hpp>
 

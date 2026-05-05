@@ -9,6 +9,7 @@
 #ifdef PLATFORM_APPLE
 #include <cstdlib>
 #include <type_traits>
+#include <cmath>
 #endif
 
 namespace base::text {
