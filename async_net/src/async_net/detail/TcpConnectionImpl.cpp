@@ -65,10 +65,10 @@ bool TcpConnectionImpl::prepare_unregister() {
 
 void TcpConnectionImpl::enter_connected_state(bool invoke_callbacks) {
   if (const auto result = socket.local_address<SocketAddress>()) {
-    local_address = result.value;
+    local_address = *result;
   }
   if (const auto result = socket.peer_address<SocketAddress>()) {
-    peer_addreess = result.value;
+    peer_addreess = *result;
   }
 
   state = TcpConnection::State::Connected;
@@ -87,11 +87,7 @@ void TcpConnectionImpl::setup_connecting_timeout(const std::shared_ptr<TcpConnec
         if (selfS->state == TcpConnection::State::Connecting) {
           // Don't use TimedOut here to make the result consistent with OSes that have sane
           // connection timeouts.
-          const auto succeeded = selfS->attempt_next_address(
-            selfS, {
-                     .error = sock::Error::ConnectFailed,
-                     .system_error = sock::SystemError::ConnectionRefused,
-                   });
+          const auto succeeded = selfS->attempt_next_address(selfS, Status::ConnectionRefused);
           if (!succeeded) {
             selfS->unregister_during_runloop(selfS);
           }
@@ -102,7 +98,7 @@ void TcpConnectionImpl::setup_connecting_timeout(const std::shared_ptr<TcpConnec
 
 bool TcpConnectionImpl::attempt_next_address(const std::shared_ptr<TcpConnectionImpl>& self,
                                              Status previous_connection_status) {
-  if (connecting_state->error_status) {
+  if (connecting_state->error_status == Status::Ok) {
     connecting_state->error_status = previous_connection_status;
   }
 
@@ -110,20 +106,20 @@ bool TcpConnectionImpl::attempt_next_address(const std::shared_ptr<TcpConnection
        ++i) {
     const auto address = connecting_state->addresses[i];
 
-    auto [initiate_status, connection] = sock::ConnectingStreamSocket::initiate_connection(address);
-    if (!initiate_status) {
-      if (connecting_state->error_status) {
-        connecting_state->error_status = initiate_status;
+    auto connection = sock::ConnectingStreamSocket::initiate(address);
+    if (!connection) {
+      if (connecting_state->error_status == Status::Ok) {
+        connecting_state->error_status = connection.error();
       }
       continue;
     }
 
-    if (connection.connected) {
+    if (connection->connected) {
       connecting_state = {};
-      socket = std::move(connection.connected);
+      socket = std::move(connection->connected);
       enter_connected_state(true);
     } else {
-      connecting_state->socket = std::move(connection.connecting);
+      connecting_state->socket = std::move(connection->connecting);
       connecting_state->next_address_index = i + 1;
 
       setup_connecting_timeout(self);
@@ -134,7 +130,7 @@ bool TcpConnectionImpl::attempt_next_address(const std::shared_ptr<TcpConnection
 
   const auto status = connecting_state->error_status;
 
-  verify(!status, "expected error status");
+  verify(status != Status::Ok, "expected error status");
 
   state = TcpConnection::State::Error;
   connecting_state = {};
@@ -142,7 +138,7 @@ bool TcpConnectionImpl::attempt_next_address(const std::shared_ptr<TcpConnection
   if (on_connected) {
     on_connected(status);
   } else {
-    log_error("failed to connect to the TCP socket: {}", status.stringify());
+    log_error("failed to connect to the TCP socket: {}", sock::status_to_string(status));
   }
 
   return false;
@@ -161,21 +157,21 @@ void TcpConnectionImpl::connect_immediate(std::shared_ptr<TcpConnectionImpl> sel
   for (size_t i = 0; i < addresses.size(); ++i) {
     const auto address = addresses[i];
 
-    auto [initiate_status, connection] = sock::ConnectingStreamSocket::initiate_connection(address);
-    if (!initiate_status) {
-      if (error_status) {
-        error_status = initiate_status;
+    auto connection = sock::ConnectingStreamSocket::initiate(address);
+    if (!connection) {
+      if (error_status == Status::Ok) {
+        error_status = connection.error();
       }
       continue;
     }
 
-    if (connection.connected) {
-      socket = std::move(connection.connected);
+    if (connection->connected) {
+      socket = std::move(connection->connected);
       enter_connected_state(true);
     } else {
       state = TcpConnection::State::Connecting;
       connecting_state = std::make_unique<ConnectingState>(
-        std::move(connection.connecting), std::move(addresses), i + 1, error_status);
+        std::move(connection->connecting), std::move(addresses), i + 1, error_status);
     }
 
     if (state != TcpConnection::State::Shutdown) {
@@ -188,14 +184,14 @@ void TcpConnectionImpl::connect_immediate(std::shared_ptr<TcpConnectionImpl> sel
     return;
   }
 
-  verify(!error_status, "expected error status");
+  verify(error_status != Status::Ok, "expected error status");
 
   state = TcpConnection::State::Error;
 
   if (on_connected) {
     on_connected(error_status);
   } else {
-    log_error("failed to connect to the TCP socket: {}", error_status.stringify());
+    log_error("failed to connect to the TCP socket: {}", sock::status_to_string(error_status));
   }
 
   cleanup_before_register();
@@ -227,7 +223,7 @@ void TcpConnectionImpl::startup(std::shared_ptr<TcpConnectionImpl> self,
         return self->cleanup_before_register();
       }
 
-      if (status) {
+      if (status == Status::Ok) {
         std::vector<SocketAddress> socket_addresses;
         socket_addresses.reserve(resolved_ips.size());
 
@@ -242,7 +238,7 @@ void TcpConnectionImpl::startup(std::shared_ptr<TcpConnectionImpl> self,
         if (self->on_connected) {
           self->on_connected(status);
         } else {
-          log_error("failed to connect to the TCP socket: {}", status.stringify());
+          log_error("failed to connect to the TCP socket: {}", sock::status_to_string(status));
         }
 
         self->cleanup_before_register();

@@ -48,14 +48,14 @@ void TcpListenerImpl::listen_immediate(std::shared_ptr<TcpListenerImpl> self,
   Status error_status{};
 
   for (const auto& address : addresses) {
-    auto [status, listener] = sock::Listener::bind(address, {
-                                                              .non_blocking = true,
-                                                              .reuse_address = true,
-                                                            });
+    auto listener = sock::Listener::bind(address, {
+                                                    .non_blocking = true,
+                                                    .reuse_address = true,
+                                                  });
 
-    if (status) {
+    if (listener) {
       state = TcpListener::State::Listening;
-      socket = std::move(listener);
+      socket = std::move(*listener);
 
       if (on_listening) {
         on_listening();
@@ -69,20 +69,20 @@ void TcpListenerImpl::listen_immediate(std::shared_ptr<TcpListenerImpl> self,
 
       return;
     } else {
-      if (error_status) {
-        error_status = status;
+      if (error_status == Status::Ok) {
+        error_status = listener.error();
       }
     }
   }
 
-  verify(!error_status, "expected error status");
+  verify(error_status != Status::Ok, "expected error status");
 
   state = TcpListener::State::Error;
 
   if (on_error) {
     on_error(error_status);
   } else {
-    log_error("failed to listen on the TCP socket: {}", error_status.stringify());
+    log_error("failed to listen on the TCP socket: {}", sock::status_to_string(error_status));
   }
 
   cleanup_before_register();
@@ -100,7 +100,7 @@ void TcpListenerImpl::startup(std::shared_ptr<TcpListenerImpl> self,
         return self->cleanup_before_register();
       }
 
-      if (status) {
+      if (status == Status::Ok) {
         std::vector<SocketAddress> socket_addresses;
         socket_addresses.reserve(resolved_ips.size());
 
@@ -115,7 +115,7 @@ void TcpListenerImpl::startup(std::shared_ptr<TcpListenerImpl> self,
         if (self->on_error) {
           self->on_error(status);
         } else {
-          log_error("failed to listen on the TCP socket: {}", status.stringify());
+          log_error("failed to listen on the TCP socket: {}", sock::status_to_string(status));
         }
 
         self->cleanup_before_register();

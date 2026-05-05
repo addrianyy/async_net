@@ -60,7 +60,7 @@ bool UdpSocketImpl::prepare_unregister() {
 
 void UdpSocketImpl::enter_bound_state() {
   if (const auto result = socket.local_address<SocketAddress>()) {
-    local_address = result.value;
+    local_address = *result;
   }
 
   state = UdpSocket::State::Bound;
@@ -83,19 +83,21 @@ void UdpSocketImpl::bind_immediate(std::shared_ptr<UdpSocketImpl> self,
   Status error_status{};
 
   for (const auto& address : addresses) {
-    auto [status, datagram] =
-      sock::DatagramSocket::bind(address, {
-                                            .non_blocking = true,
-                                            .reuse_address = true,
-                                            .reuse_port = parameters.reuse_port,
-                                          });
+    auto datagram = sock::DatagramSocket::bind(address, {
+                                                          .non_blocking = true,
+                                                          .reuse_address = true,
+                                                          .reuse_port = parameters.reuse_port,
+                                                        });
 
-    if (status && parameters.allow_broadcast) {
-      status = datagram.set_broadcast_enabled(true);
+    if (datagram && parameters.allow_broadcast) {
+      const auto status = datagram->set_broadcast_enabled(true);
+      if (status != Status::Ok) {
+        datagram = std::unexpected{status};
+      }
     }
 
-    if (status) {
-      socket = std::move(datagram);
+    if (datagram) {
+      socket = std::move(*datagram);
       enter_bound_state();
 
       if (state != UdpSocket::State::Shutdown) {
@@ -106,20 +108,20 @@ void UdpSocketImpl::bind_immediate(std::shared_ptr<UdpSocketImpl> self,
 
       return;
     } else {
-      if (error_status) {
-        error_status = status;
+      if (error_status == Status::Ok) {
+        error_status = datagram.error();
       }
     }
   }
 
-  verify(!error_status, "expected error status");
+  verify(error_status != Status::Ok, "expected error status");
 
   state = UdpSocket::State::Error;
 
   if (on_bound) {
     on_bound(error_status);
   } else {
-    log_error("failed to bind to the UDP socket: {}", error_status.stringify());
+    log_error("failed to bind to the UDP socket: {}", sock::status_to_string(error_status));
   }
 
   cleanup_before_register();
@@ -127,17 +129,19 @@ void UdpSocketImpl::bind_immediate(std::shared_ptr<UdpSocketImpl> self,
 
 void UdpSocketImpl::bind_anonymous_immediate(std::shared_ptr<UdpSocketImpl> self,
                                              UdpSocket::BindParameters parameters) {
-  auto [status, datagram] =
-    sock::DatagramSocket::create(SocketAddress{}.type(), {
-                                                           .non_blocking = true,
-                                                         });
+  auto datagram = sock::DatagramSocket::create(SocketAddress{}.type(), {
+                                                                         .non_blocking = true,
+                                                                       });
 
-  if (status && parameters.allow_broadcast) {
-    status = datagram.set_broadcast_enabled(true);
+  if (datagram && parameters.allow_broadcast) {
+    const auto status = datagram->set_broadcast_enabled(true);
+    if (status != Status::Ok) {
+      datagram = std::unexpected{status};
+    }
   }
 
-  if (status) {
-    socket = std::move(datagram);
+  if (datagram) {
+    socket = std::move(*datagram);
     enter_bound_state();
 
     if (state != UdpSocket::State::Shutdown) {
@@ -149,9 +153,9 @@ void UdpSocketImpl::bind_anonymous_immediate(std::shared_ptr<UdpSocketImpl> self
     state = UdpSocket::State::Error;
 
     if (on_bound) {
-      on_bound(status);
+      on_bound(datagram.error());
     } else {
-      log_error("failed to bind to the UDP socket: {}", status.stringify());
+      log_error("failed to bind to the UDP socket: {}", sock::status_to_string(datagram.error()));
     }
 
     cleanup_before_register();
@@ -171,7 +175,7 @@ void UdpSocketImpl::startup(std::shared_ptr<UdpSocketImpl> self,
                           return self->cleanup_before_register();
                         }
 
-                        if (status) {
+                        if (status == Status::Ok) {
                           std::vector<SocketAddress> socket_addresses;
                           socket_addresses.reserve(resolved_ips.size());
 
@@ -186,7 +190,8 @@ void UdpSocketImpl::startup(std::shared_ptr<UdpSocketImpl> self,
                           if (self->on_bound) {
                             self->on_bound(status);
                           } else {
-                            log_error("failed to bind to the UDP socket: {}", status.stringify());
+                            log_error("failed to bind to the UDP socket: {}",
+                                      sock::status_to_string(status));
                           }
 
                           self->cleanup_before_register();

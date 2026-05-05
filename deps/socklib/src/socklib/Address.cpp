@@ -1,6 +1,7 @@
 #include "Address.hpp"
 
 #include <cstring>
+#include <format>
 #include <ios>
 #include <sstream>
 
@@ -8,15 +9,12 @@ namespace sock {
 
 std::string IpV4Address::stringify() const {
   const auto& c = components_;
-
-  std::ostringstream os;
-  os << uint32_t(c[0]) << '.' << uint32_t(c[1]) << '.' << uint32_t(c[2]) << '.' << uint32_t(c[3]);
-  return os.str();
+  return std::format("{}.{}.{}.{}", uint32_t(c[0]), uint32_t(c[1]), uint32_t(c[2]), uint32_t(c[3]));
 }
 
 std::string IpV6Address::stringify() const {
-  if (is_mapped_to_ipv4()) {
-    return mapped_ipv4()->stringify();
+  if (const auto ipv4 = mapped_ipv4()) {
+    return ipv4->stringify();
   }
   return stringify_v6();
 }
@@ -77,31 +75,30 @@ std::string IpV6Address::stringify_v6() const {
 }
 
 std::string SocketIpV4Address::stringify() const {
-  std::ostringstream os;
-  os << ip_.stringify() << ':' << port_;
-  return os.str();
+  return std::format("{}:{}", ip_.stringify(), port_);
 }
 
 std::string SocketIpV6Address::stringify() const {
-  if (ip_.is_mapped_to_ipv4()) {
-    return SocketIpV4Address{*ip_.mapped_ipv4(), port_}.stringify();
+  if (const auto ipv4 = ip_.mapped_ipv4()) {
+    return SocketIpV4Address{*ipv4, port_}.stringify();
   }
   return stringify_v6();
 }
 
 std::string SocketIpV6Address::stringify_v6() const {
-  std::ostringstream os;
-  os << '[' << ip_.stringify() << "]:" << port_;
-  return os.str();
+  return std::format("[{}]:{}", ip_.stringify(), port_);
 }
 
 SocketUnixAddress::SocketUnixAddress(Namespace socket_namespace, std::string_view path)
-    : SocketAddress(Type::Unix), socket_namespace_(socket_namespace), path_size_(path.size()) {
+    : SocketAddress(Type::Unix),
+      socket_namespace_(socket_namespace),
+      path_size_(path.size()) {
   std::memcpy(path_.data(), path.data(), path.size());
 }
 
-std::optional<SocketUnixAddress> SocketUnixAddress::create(Namespace socket_namespace,
-                                                           std::string_view path) {
+std::optional<SocketUnixAddress> SocketUnixAddress::create(
+  Namespace socket_namespace, std::string_view path
+) {
   if constexpr (!abstract_namespace_supported) {
     if (socket_namespace == Namespace::Abstract) {
       return std::nullopt;

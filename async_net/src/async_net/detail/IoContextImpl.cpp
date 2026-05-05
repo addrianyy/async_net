@@ -115,20 +115,15 @@ void IoContextImpl::handle_tcp_listener_events(const sock::Poller::PollEntry& en
     if (listener->state == TcpListener::State::Listening) {
       listener->state = TcpListener::State::Error;
 
-      auto error = listener->socket.last_error();
-      if (error == SystemError::None) {
-        error = SystemError::Unknown;
+      auto status = listener->socket.last_error();
+      if (status == Status::Ok) {
+        status = Status::Unknown;
       }
-
-      const Status status{
-        .error = sock::Error::ListenFailed,
-        .system_error = error,
-      };
 
       if (listener->on_error) {
         listener->on_error(status);
       } else {
-        log_error("failed to listen on the TCP socket: {}", status.stringify());
+        log_error("failed to listen on the TCP socket: {}", sock::status_to_string(status));
       }
     }
 
@@ -138,16 +133,16 @@ void IoContextImpl::handle_tcp_listener_events(const sock::Poller::PollEntry& en
 
   if (entry.has_events(sock::Poller::StatusEvents::CanAccept)) {
     while (listener->is_listening() && listener->accept_connections && listener->on_accept) {
-      auto [accept_status, client_socket] = listener->socket.accept();
-      if (!accept_status) {
-        if (!accept_status.would_block()) {
-          listener->on_accept(accept_status, TcpConnection{});
+      auto client_socket = listener->socket.accept();
+      if (!client_socket) {
+        if (client_socket.error() != Status::WouldBlock) {
+          listener->on_accept(client_socket.error(), TcpConnection{});
         }
         break;
       }
 
-      if (const auto status = client_socket.set_non_blocking(true)) {
-        TcpConnection connection{listener->context, std::move(client_socket)};
+      if (const auto status = client_socket->set_non_blocking(true); status == Status::Ok) {
+        TcpConnection connection{listener->context, std::move(*client_socket)};
         listener->on_accept(Status{}, std::move(connection));
       } else {
         listener->on_accept(status, TcpConnection{});
@@ -173,15 +168,10 @@ IoContextImpl::PendingConnectionStatus IoContextImpl::handle_tcp_pending_connect
                           sock::Poller::StatusEvents::InvalidSocket |
                           sock::Poller::StatusEvents::Error)) {
     if (connection->state == TcpConnection::State::Connecting) {
-      auto error = connection->connecting_state->socket.last_error();
-      if (error == SystemError::None) {
-        error = SystemError::Unknown;
+      auto status = connection->connecting_state->socket.last_error();
+      if (status == Status::Ok) {
+        status = Status::Unknown;
       }
-
-      const Status status{
-        .error = sock::Error::ConnectFailed,
-        .system_error = error,
-      };
 
       return next_connection(status);
     }
@@ -192,18 +182,17 @@ IoContextImpl::PendingConnectionStatus IoContextImpl::handle_tcp_pending_connect
   if (entry.has_any_event(sock::Poller::StatusEvents::CanSendTo |
                           sock::Poller::StatusEvents::CanReceiveFrom)) {
     if (connection->state == TcpConnection::State::Connecting) {
-      auto [connect_status, socket] = connection->connecting_state->socket.connect();
-
-      if (connect_status) {
+      auto socket = connection->connecting_state->socket.connect();
+      if (socket) {
         connection->connecting_state = {};
-        connection->socket = std::move(socket);
+        connection->socket = std::move(*socket);
         connection->enter_connected_state(true);
 
         return connection->state == TcpConnection::State::Connected
                  ? PendingConnectionStatus::Connected
                  : PendingConnectionStatus::Failed;
       } else {
-        return next_connection(connect_status);
+        return next_connection(socket.error());
       }
     } else {
       return PendingConnectionStatus::Failed;
@@ -232,10 +221,10 @@ void IoContextImpl::handle_tcp_connection_events(
   }
 
   const auto on_socket_error = [&](sock::Status status) {
-    verify(!status, "cannot handle non-error status");
+    verify(status != Status::Ok, "cannot handle non-error status");
 
     if (connection->state == TcpConnection::State::Connected) {
-      if (status.disconnected()) {
+      if (status == Status::Disconnected) {
         connection->state = TcpConnection::State::Disconnected;
         if (connection->on_closed) {
           connection->on_closed({});
@@ -245,7 +234,7 @@ void IoContextImpl::handle_tcp_connection_events(
         if (connection->on_closed) {
           connection->on_closed(status);
         } else {
-          log_error("failed to process TCP connection: {}", status.stringify());
+          log_error("failed to process TCP connection: {}", sock::status_to_string(status));
         }
       }
     }
@@ -268,22 +257,21 @@ void IoContextImpl::handle_tcp_connection_events(
       const auto previous_size = connection->receive_buffer.size();
       const auto current_receive_buffer = connection->receive_buffer.grow(max_receive_amount);
 
-      const auto [receive_status, bytes_received] =
-        connection->socket.receive(current_receive_buffer);
+      const auto bytes_received = connection->socket.receive(current_receive_buffer);
 
-      connection->receive_buffer.resize(previous_size + bytes_received);
-
-      if (!receive_status) {
-        if (!receive_status.would_block()) {
-          receive_error = receive_status;
+      if (!bytes_received) {
+        if (bytes_received.error() == Status::WouldBlock) {
+          receive_error = bytes_received.error();
         }
 
         break;
+      } else {
+        connection->receive_buffer.resize(previous_size + *bytes_received);
       }
 
-      total_bytes_received += bytes_received;
+      total_bytes_received += *bytes_received;
 
-      if (bytes_received < max_receive_amount) {
+      if (*bytes_received < max_receive_amount) {
         break;
       }
     }
@@ -297,7 +285,7 @@ void IoContextImpl::handle_tcp_connection_events(
       }
     }
 
-    if (!receive_error) {
+    if (receive_error != Status::Ok) {
       on_socket_error(receive_error);
     }
   }
@@ -306,18 +294,15 @@ void IoContextImpl::handle_tcp_connection_events(
                           sock::Poller::StatusEvents::Error |
                           sock::Poller::StatusEvents::Disconnected)) {
     if (connection->state == TcpConnection::State::Connected) {
-      auto error = connection->socket.last_error();
-      if (error == SystemError::None) {
-        error = SystemError::Unknown;
+      auto status = connection->socket.last_error();
+      if (status == Status::Ok) {
+        status = Status::Unknown;
       }
       if (entry.has_events(sock::Poller::StatusEvents::Disconnected)) {
-        error = sock::SystemError::Disconnected;
+        status = Status::Disconnected;
       }
 
-      on_socket_error(sock::Status{
-        .error = sock::Error::PollFailed,
-        .system_error = error,
-      });
+      on_socket_error(status);
     } else {
       connection->unregister_during_runloop(connection);
     }
@@ -335,18 +320,18 @@ void IoContextImpl::handle_tcp_connection_events(
         current_send_buffer = current_send_buffer.subspan(0, max_send_fragment_size);
       }
 
-      const auto [send_status, bytes_sent] = connection->socket.send(current_send_buffer);
-      if (!send_status) {
-        if (!send_status.would_block()) {
-          on_socket_error(send_status);
+      const auto bytes_sent = connection->socket.send(current_send_buffer);
+      if (!bytes_sent) {
+        if (bytes_sent.error() != Status::WouldBlock) {
+          on_socket_error(bytes_sent.error());
         }
 
         break;
       }
 
-      send_buffer = send_buffer.subspan(bytes_sent);
+      send_buffer = send_buffer.subspan(*bytes_sent);
 
-      if (bytes_sent < current_send_buffer.size()) {
+      if (*bytes_sent < current_send_buffer.size()) {
         break;
       }
     }
@@ -372,14 +357,14 @@ void IoContextImpl::handle_tcp_connection_events(
 void IoContextImpl::handle_udp_socket_events(const sock::Poller::PollEntry& entry,
                                              const std::shared_ptr<UdpSocketImpl>& socket) {
   const auto on_socket_error = [&](sock::Status status) {
-    verify(!status, "cannot handle non-error status");
+    verify(status != Status::Ok, "cannot handle non-error status");
 
     if (socket->state == UdpSocket::State::Bound) {
       socket->state = UdpSocket::State::Error;
       if (socket->on_closed) {
         socket->on_closed(status);
       } else {
-        log_error("failed to process UDP socket: {}", status.stringify());
+        log_error("failed to process UDP socket: {}", sock::status_to_string(status));
       }
     }
 
@@ -391,17 +376,16 @@ void IoContextImpl::handle_udp_socket_events(const sock::Poller::PollEntry& entr
 
     while (socket->state == UdpSocket::State::Bound && socket->receive_packets &&
            socket->on_data_received) {
-      const auto [status, bytes_received] =
-        socket->socket.receive_from(peer_address, udp_receive_buffer);
-      if (!status) {
-        if (!status.would_block()) {
-          on_socket_error(status);
+      const auto bytes_received = socket->socket.receive_from(peer_address, udp_receive_buffer);
+      if (!bytes_received) {
+        if (bytes_received.error() != Status::WouldBlock) {
+          on_socket_error(bytes_received.error());
         }
         break;
       }
 
-      socket->total_bytes_received += bytes_received;
-      socket->on_data_received(peer_address, udp_receive_buffer.span().subspan(0, bytes_received));
+      socket->total_bytes_received += *bytes_received;
+      socket->on_data_received(peer_address, udp_receive_buffer.span().subspan(0, *bytes_received));
     }
   }
 
@@ -409,15 +393,12 @@ void IoContextImpl::handle_udp_socket_events(const sock::Poller::PollEntry& entr
                           sock::Poller::StatusEvents::Error |
                           sock::Poller::StatusEvents::Disconnected)) {
     if (socket->state == UdpSocket::State::Bound) {
-      auto error = socket->socket.last_error();
-      if (error == SystemError::None) {
-        error = SystemError::Unknown;
+      auto status = socket->socket.last_error();
+      if (status == Status::Ok) {
+        status = Status::Unknown;
       }
 
-      on_socket_error(sock::Status{
-        .error = sock::Error::PollFailed,
-        .system_error = error,
-      });
+      on_socket_error(status);
     } else {
       socket->unregister_during_runloop(socket);
     }
@@ -433,25 +414,23 @@ void IoContextImpl::handle_udp_socket_events(const sock::Poller::PollEntry& entr
 
       const auto send_data =
         socket->send_buffer.span().subspan(socket->send_buffer_offset, send_entry.datagram_size);
-      const auto [status, bytes_sent] = socket->socket.send_to(send_entry.destination, send_data);
-      if (status.would_block()) {
+      const auto bytes_sent = socket->socket.send_to(send_entry.destination, send_data);
+      if (!bytes_sent && bytes_sent.error() == Status::WouldBlock) {
         break;
       }
 
       socket->send_buffer_offset += send_data.size();
       send_entries_processed++;
 
-      if (status) {
-        total_bytes_sent += bytes_sent;
+      if (bytes_sent) {
+        total_bytes_sent += *bytes_sent;
       }
 
       if (socket->on_send_error) {
-        if (!status) {
-          socket->on_send_error(status);
-        } else if (bytes_sent < send_entry.datagram_size) {
-          socket->on_send_error({
-            .error = sock::Error::SizeTooLarge,
-          });
+        if (!bytes_sent) {
+          socket->on_send_error(bytes_sent.error());
+        } else if (*bytes_sent < send_entry.datagram_size) {
+          socket->on_send_error(Status::SizeTooLarge);
         }
       }
     }
@@ -676,13 +655,13 @@ IoContext::RunResult IoContextImpl::run(const IoContext::RunParameters& paramete
 
   register_poll_entries();
 
-  const auto [poll_status, signaled_entries] = poller->poll(poll_entries, timeout_ms);
-  if (!poll_status) {
-    log_error("poll failed with result: {}", poll_status.stringify());
+  const auto signaled_entries = poller->poll(poll_entries, timeout_ms);
+  if (!signaled_entries) {
+    log_error("poll failed with result: {}", sock::status_to_string(signaled_entries.error()));
     return IoContext::RunResult::Failed;
   }
 
-  if (signaled_entries > 0) {
+  if (*signaled_entries > 0) {
     handle_poll_events();
   }
 

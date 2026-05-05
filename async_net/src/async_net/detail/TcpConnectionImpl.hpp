@@ -6,6 +6,7 @@
 #include <async_net/TcpConnection.hpp>
 #include <async_net/Timer.hpp>
 
+#include <socklib/ConnectingStreamSocket.hpp>
 #include <socklib/Socket.hpp>
 
 #include <base/containers/BinaryBuffer.hpp>

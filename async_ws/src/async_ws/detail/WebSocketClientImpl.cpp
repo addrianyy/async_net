@@ -402,7 +402,7 @@ void WebSocketClientImpl::on_ws_error(Status status) {
 
 void WebSocketClientImpl::on_tcp_connected(async_net::Status status) {
   if (state_ == WebSocketClient::State::Connecting) {
-    if (status) {
+    if (status == async_net::Status::Ok) {
       if (!connector || !connector->send_request(connection)) {
         on_ws_error({.error = Error::FailedToSendRequest});
       }
@@ -413,7 +413,7 @@ void WebSocketClientImpl::on_tcp_connected(async_net::Status status) {
 }
 
 void WebSocketClientImpl::on_tcp_closed(async_net::Status status) {
-  if (status) {
+  if (status == async_net::Status::Ok) {
     on_ws_disconnected();
   } else {
     on_ws_error({.error = Error::NetworkError, .net_status = status});

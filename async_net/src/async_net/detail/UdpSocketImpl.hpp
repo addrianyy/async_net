@@ -5,7 +5,7 @@
 #include <async_net/Status.hpp>
 #include <async_net/UdpSocket.hpp>
 
-#include <socklib/Socket.hpp>
+#include <socklib/DatagramSocket.hpp>
 
 #include <base/containers/BinaryBuffer.hpp>
 

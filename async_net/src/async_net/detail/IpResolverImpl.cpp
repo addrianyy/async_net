@@ -1,7 +1,7 @@
 #include "IpResolverImpl.hpp"
 #include "IoContextImpl.hpp"
 
-#include <socklib/Socket.hpp>
+#include <socklib/Resolver.hpp>
 
 namespace async_net::detail {
 
@@ -13,10 +13,10 @@ void IpResolverImpl::worker_run() {
     }
 
     for (auto& request : requests) {
-      auto [status, ips] = sock::IpResolver::ForIp<IpAddress>::resolve(request.hostname);
+      auto ips = sock::IpResolver::ForIp<IpAddress>::resolve(request.hostname);
       worker_response_queue.push_back_one({
-        .status = status,
-        .resolved_ips = std::move(ips),
+        .status = ips ? Status::Ok : ips.error(),
+        .resolved_ips = ips ? std::move(*ips) : std::vector<IpAddress>{},
         .callback = std::move(request.callback),
       });
       io_context.notify();

@@ -1,46 +1,18 @@
 #include "Status.hpp"
 
-std::string_view sock::Status::stringify_error(Error error) {
-  switch (error) {
-#define X(variant)           \
-  case sock::Error::variant: \
-    return #variant;
+namespace sock {
 
-#include "Errors.inc"
+std::string_view status_to_string(Status status) {
+  switch (status) {
+#define X(variant) \
+  case Status::variant: return #variant;
 
-#undef X
-
-    default:
-      return "<unknown>";
-  }
-}
-std::string_view sock::Status::stringify_error(SystemError system_error) {
-  switch (system_error) {
-#define X(variant)                 \
-  case sock::SystemError::variant: \
-    return #variant;
-
-#include "SystemErrors.inc"
+#include "Status.inc"
 
 #undef X
 
-    default:
-      return "<unknown>";
+    default: return "<unknown>";
   }
 }
 
-std::string sock::Status::stringify() const {
-  auto stringified = std::string(stringify_error(error));
-
-  if (sub_error != Error::None) {
-    stringified += " / ";
-    stringified += stringify_error(sub_error);
-  }
-  if (system_error != SystemError::None) {
-    stringified += " (";
-    stringified += stringify_error(system_error);
-    stringified += ')';
-  }
-
-  return stringified;
-}
+}  // namespace sock

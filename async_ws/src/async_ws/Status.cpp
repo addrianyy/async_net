@@ -19,9 +19,9 @@ static std::string_view error_to_string(Error error) {
 
 std::string Status::stringify() const {
   std::string result{error_to_string(error)};
-  if (!net_status) {
+  if (net_status != sock::Status::Ok) {
     result += ' ';
-    result += net_status.stringify();
+    result += sock::status_to_string(net_status);
   }
   return result;
 }

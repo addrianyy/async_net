@@ -9,7 +9,7 @@
 #include <mutex>
 #include <vector>
 
-#include <socklib/Socket.hpp>
+#include <socklib/Poller.hpp>
 
 #include <base/containers/BinaryBuffer.hpp>
 #include <base/macro/ClassTraits.hpp>

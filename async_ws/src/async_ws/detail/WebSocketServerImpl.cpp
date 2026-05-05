@@ -65,7 +65,7 @@ void WebSocketServerImpl::startup(std::shared_ptr<WebSocketServerImpl> self) {
   });
 
   listener.set_on_accept([self](async_net::Status status, async_net::TcpConnection connection) {
-    if (status && self->on_client_connected) {
+    if (status == async_net::Status::Ok && self->on_client_connected) {
       auto client = std::make_shared<WebSocketAcceptingClientImpl>(self, std::move(connection));
       client->startup(client);
     }

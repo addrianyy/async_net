@@ -129,7 +129,8 @@ void WebSocketAcceptingClientImpl::startup(std::shared_ptr<WebSocketAcceptingCli
 
   connection.set_on_closed([selfW](async_net::Status status) {
     if (auto selfS = selfW.lock()) {
-      log_warn("accepting WebSocket client: connection closed (error: {})", status.stringify());
+      log_warn("accepting WebSocket client: connection closed (error: {})",
+               sock::status_to_string(status));
       selfS->timeout.reset();
     }
   });
