@@ -68,9 +68,9 @@ class ProxyClient : public std::enable_shared_from_this<ProxyClient> {
 
     {
       auto self = shared_from_this();
-      
+
       tcp_peer.set_on_connected([self](async_net::Status status) {
-        if (status) {
+        if (status == async_net::Status::Ok) {
           self->on_tcp_connection_succeeded();
         } else {
           self->on_tcp_connection_failed(status);
@@ -99,7 +99,7 @@ class ProxyClient : public std::enable_shared_from_this<ProxyClient> {
 
   void on_tcp_connection_failed(async_net::Status status) {
     if (state == State::Connecting) {
-      log_warn("{} - failed to connect to TCP peer: {}", ip, status.stringify());
+      log_warn("{} - failed to connect to TCP peer: {}", ip, async_net::status_to_string(status));
 
       (void)client.send_text_message("0");
       close();
@@ -107,7 +107,7 @@ class ProxyClient : public std::enable_shared_from_this<ProxyClient> {
   }
 
   void on_tcp_closed(async_net::Status status) {
-    log_warn("{} - TCP peer connection closed (error {})", ip, status.stringify());
+    log_warn("{} - TCP peer connection closed (error {})", ip, async_net::status_to_string(status));
     close();
   }
 

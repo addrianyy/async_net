@@ -14,7 +14,7 @@ int main() {
   async_net::TcpConnection connection{context, "localhost", port};
 
   connection.set_on_connected([&](async_net::Status status) {
-    log_info("connection status: {}", status.stringify());
+    log_info("connection status: {}", async_net::status_to_string(status));
     connection.shutdown();
   });
 

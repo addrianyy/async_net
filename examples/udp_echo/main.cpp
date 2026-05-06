@@ -14,10 +14,10 @@ int main() {
   async_net::UdpSocket socket{context, port};
 
   socket.set_on_bound([](async_net::Status status) {
-    if (status) {
+    if (status == async_net::Status::Ok) {
       log_info("binding succeeded");
     } else {
-      log_info("binding failed: {}", status.stringify());
+      log_info("binding failed: {}", async_net::status_to_string(status));
     }
   });
 
