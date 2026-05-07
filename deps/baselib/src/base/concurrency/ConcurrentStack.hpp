@@ -17,6 +17,8 @@ class ConcurrentStack {
  public:
   ConcurrentStack() = default;
 
+  std::vector<T> move() { return std::move(stack); }
+
   void request_exit() {
     std::lock_guard lock(mutex);
     requested_exit = true;

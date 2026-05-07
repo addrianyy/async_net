@@ -74,11 +74,11 @@ class Object {
   size_t size() const;
   bool empty() const;
 
-  auto begin() { return entries_.begin(); }
-  auto end() { return entries_.end(); }
+  Map::iterator begin();
+  Map::iterator end();
 
-  auto begin() const { return entries_.begin(); }
-  auto end() const { return entries_.end(); }
+  Map::const_iterator begin() const;
+  Map::const_iterator end() const;
 
   Map& entries() { return entries_; }
   const Map& entries() const { return entries_; }
@@ -118,11 +118,11 @@ class Array {
   Value& operator[](size_t index);
   const Value& operator[](size_t index) const;
 
-  Vector::iterator begin();
-  Vector::iterator end();
+  std::vector<Value>::iterator begin();
+  std::vector<Value>::iterator end();
 
-  Vector::const_iterator begin() const;
-  Vector::const_iterator end() const;
+  std::vector<Value>::const_iterator begin() const;
+  std::vector<Value>::const_iterator end() const;
 
   Vector& entries() { return entries_; }
   const Vector& entries() const { return entries_; }

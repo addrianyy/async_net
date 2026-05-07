@@ -25,6 +25,8 @@ struct PanicHooks {
 static PanicHooks g_panic_hooks;
 static std::atomic_bool g_is_panicking = false;
 
+static std::function<void(std::string_view)> g_panic_handler;
+
 PanicHookRegistration PanicHookRegistration::register_hook(PanicHook hook) {
   if (g_is_panicking) {
     return {};
@@ -63,6 +65,10 @@ bool base::is_panicking() {
   return g_is_panicking.load(std::memory_order_relaxed);
 }
 
+void base::set_panic_handler(std::function<void(std::string_view)> handler) {
+  g_panic_handler = std::move(handler);
+}
+
 [[noreturn]] void detail::panic::do_fatal_error(
   const char* file, int line, fmt::string_view fmt, fmt::format_args args
 ) {
@@ -91,6 +97,10 @@ bool base::is_panicking() {
   {
     int _unused = 0;
     (void)_unused;
+  }
+
+  if (g_panic_handler) {
+    g_panic_handler(fmt::vformat(fmt, args));
   }
 
   // Use _Exit so we don't call any destructors.

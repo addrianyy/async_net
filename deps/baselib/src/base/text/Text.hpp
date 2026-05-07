@@ -7,9 +7,9 @@
 #include <base/Platform.hpp>
 
 #ifdef PLATFORM_APPLE
+#include <cmath>
 #include <cstdlib>
 #include <type_traits>
-#include <cmath>
 #endif
 
 namespace base::text {
@@ -26,7 +26,7 @@ template <typename T>
 bool to_number(std::string_view s, T& value) {
   value = {};
 
-#ifdef PLATFORM_APPLE
+#if defined(PLATFORM_APPLE) || defined(PLATFORM_ANDROID)
   if constexpr (std::is_floating_point_v<T>) {
     const std::string string{s};
     char* end = nullptr;

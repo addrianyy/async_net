@@ -52,6 +52,22 @@ bool Object::empty() const {
   return entries_.empty();
 }
 
+Object::Map::iterator Object::begin() {
+  return entries_.begin();
+}
+
+Object::Map::iterator Object::end() {
+  return entries_.end();
+}
+
+Object::Map::const_iterator Object::begin() const {
+  return entries_.begin();
+}
+
+Object::Map::const_iterator Object::end() const {
+  return entries_.end();
+}
+
 Array::Array(Vector entries)
     : entries_(std::move(entries)) {}
 

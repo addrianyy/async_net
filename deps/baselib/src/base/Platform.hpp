@@ -1,9 +1,14 @@
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS)
+#ifdef EMSCRIPTEN
+#define PLATFORM_WEB
+#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS)
 #define PLATFORM_WINDOWS
 #elif defined(__linux__)
 #define PLATFORM_LINUX
+#if defined(__ANDROID__) || defined(ANDROID)
+#define PLATFORM_ANDROID
+#endif
 #elif defined(__APPLE__) && defined(__MACH__)
 
 #include <TargetConditionals.h>
@@ -22,10 +27,10 @@
 #error "Unknown platform"
 #endif
 
-#if defined(PLATFORM_WINDOWS) || defined(PLATFORM_LINUX) || defined(PLATFORM_MAC)
-#define PLATFORM_DESKTOP
-#elif defined(PLATFORM_IOS)
+#if defined(PLATFORM_IOS) || defined(PLATFORM_ANDROID) || defined(PLATFORM_WEB)
 #define PLATFORM_MOBILE
+#elif defined(PLATFORM_WINDOWS) || defined(PLATFORM_LINUX) || defined(PLATFORM_MAC)
+#define PLATFORM_DESKTOP
 #endif
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(_M_AMD64)

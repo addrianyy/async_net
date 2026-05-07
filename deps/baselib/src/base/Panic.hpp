@@ -1,4 +1,7 @@
 #pragma once
+#include <functional>
+#include <string_view>
+
 #include "text/Format.hpp"
 
 namespace base::detail::panic {
@@ -30,7 +33,8 @@ inline void verify_fmt(
 
 namespace base {
 bool is_panicking();
-}
+void set_panic_handler(std::function<void(std::string_view)> handler);
+}  // namespace base
 
 #define fatal_error(format, ...) \
   ::base::detail::panic::fatal_error_fmt(__FILE__, __LINE__, (format), ##__VA_ARGS__)

@@ -158,6 +158,14 @@ class SumType {
   }
 
   template <typename T>
+  constexpr SumType(const T& value) {
+    check_variant_type<T>();
+
+    variant_id = VariantIdFor<T>::id;
+    new (&storage) T(value);
+  }
+
+  template <typename T>
   constexpr SumType(T&& value) {
     check_variant_type<T>();
 
@@ -191,6 +199,16 @@ class SumType {
     return detail::sum_type::visit<true, Fn, Variants...>(
       variant_id, &storage, std::forward<Fn>(fn)
     );
+  }
+
+  template <typename... Fn>
+  constexpr auto visit_many(Fn&&... fn) {
+    return visit(Overload{std::forward<Fn>(fn)...});
+  }
+
+  template <typename... Fn>
+  constexpr auto visit_many(Fn&&... fn) const {
+    return visit(Overload{std::forward<Fn>(fn)...});
   }
 
   template <typename T>

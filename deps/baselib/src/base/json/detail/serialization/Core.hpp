@@ -9,10 +9,10 @@
 namespace base::json {
 
 template <typename T>
-class Serializer;
+struct Serializer;
 
 template <typename T>
-class Deserializer;
+struct Deserializer;
 
 template <typename T>
 std::optional<Value> serialize(const T& value) {
